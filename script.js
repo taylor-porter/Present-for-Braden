@@ -1,5 +1,9 @@
 const canvas = document.getElementById("game_canvas");
 const ctx = canvas.getContext("2d");
+
+const canvas2 = document.getElementById("game_canvas_2");
+const ctx2 = canvas2.getContext("2d");
+
 let sprites = [];
 let key = "";
 let upWasPressed = false;
@@ -22,6 +26,14 @@ let camera = {
     y: 0,
     width: canvas.width,
     height: canvas.height, 
+    smoothness : 0.1
+};
+
+let camera2 = {
+    x: 0,
+    y: 0,
+    width: canvas2.width,
+    height: canvas2.height, 
     smoothness : 0.1
 };
 
@@ -66,6 +78,10 @@ function createSprite(posX, posY, width, height){
 let sky = createSprite(0,0, canvas.width, canvas.height)
 sky.animation.src = "images/sky.jpg"
 sprites.push(sky);
+
+let sky2 = createSprite(0,0,canvas2.width, canvas2.height)
+sky2.animation.src = "images/sky.jpg"
+sprites.push(sky2);
 
 let player = createSprite(200, 100, 50, 100, "player");
 sprites.push(player);
@@ -206,51 +222,58 @@ startStop.addEventListener("click", function(){
     startStop.style.display = "none";
 })
 
-function followSprite(sprite){ //if the player is past the camera border, push the camera
-    //left/right
-    if(sprite.x + sprite.width > targetX + (camera.width - cameraBorder) || sprite.x < targetX + cameraBorder){
-        targetX += sprite.velocityX;
-    }
-    //up/down
-    if(sprite.y + sprite.height > targetY + (camera.height - cameraBorder) || sprite.y < targetY + cameraBorder){
-        if((sprite.velocityY === 1.7) && isTouchingGround(sprite)[0]){
-            targetY += sprite.velocityY - 1.7;
-        }
-        else{
+// function followSprite(sprite){ //if the player is past the camera border, push the camera
+//     //left/right
+//     if(sprite.x + sprite.width > targetX + (camera.width - cameraBorder) || sprite.x < targetX + cameraBorder){
+//         targetX += sprite.velocityX;
+//     }
+//     //up/down
+//     if(sprite.y + sprite.height > targetY + (camera.height - cameraBorder) || sprite.y < targetY + cameraBorder){
+//         if((sprite.velocityY === 1.7) && isTouchingGround(sprite)[0]){
+//             targetY += sprite.velocityY - 1.7;
+//         }
+//         else{
             
-            targetY += sprite.velocityY;
-        }
-    }
-    if(sprite.x + sprite.width > targetX + camera.width){
-        sprite.x = targetX + camera.width - sprite.width
-    }
-    if(sprite.x < targetX){
-        sprite.x = targetX;
-    }
-}
+//             targetY += sprite.velocityY;
+//         }
+//     }
+//     if(sprite.x + sprite.width > targetX + camera.width){
+//         sprite.x = targetX + camera.width - sprite.width
+//     }
+//     if(sprite.x < targetX){
+//         sprite.x = targetX;
+//     }
+// }
 
-let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
-let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)
+// let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
+// let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)
 
-function centerCamera(sprite){
-    targetX = sprite.x - camera.width / 2;
-    targetY = sprite.y - camera.height / 2;
-}
+// 
 
 function gameLoop(){
     // Move the camera to follow the player
-    followSprite(player);
-    followSprite(sonic);
+    // followSprite(player);
+    // followSprite(sonic);
 
     // let targetY = (player.y + sonic.y) / 2 - camera.height / 2 
     // let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
 
-
+    let targetX = player.x - camera.width / 2;
+    let targetY = player.y - camera.height / 2;
     camera.x = lerp(camera.x, targetX, cameraSpeed);
     camera.y = lerp(camera.y, targetY, cameraSpeed);
 
+    let targetX2 = sonic.x - camera2.width / 2;
+    let targetY2 = sonic.y - camera2.height / 2 - 30;
+    camera2.x = lerp(camera2.x, targetX2, cameraSpeed);
+    camera2.y = lerp(camera2.y, targetY2, cameraSpeed);
+
+
     sky.x = camera.x;
     sky.y = camera.y;
+
+    sky2.x = camera2.x;
+    sky2.y = camera2.y;
 
     giveMovement(player, "ArrowLeft", "ArrowRight", "ArrowDown"); 
     giveMovement(sonic, "a", "d", "s");
@@ -327,12 +350,10 @@ function gameLoop(){
     if(player.y > fallHeight){
         player.x = 200;
         player.y = 100;
-        centerCamera(player);
     }
     if(sonic.y > fallHeight){
         sonic.x = 200;
         sonic.y = 100;
-        centerCamera(sonic);
     }
 }
 
@@ -358,42 +379,61 @@ function isTouching(sprite1, sprite2) {
 function drawSprites() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for(let i=0; i < sprites.length; i++){
-        if(!sprites[i].spriteSheet.used){
-            ctx.drawImage(
-                sprites[i].animation, 
-                sprites[i].x - camera.x,
-                sprites[i].y - camera.y, 
-                sprites[i].width, 
-                sprites[i].height
-            );
+        if(sprites[i] !== sky2){
+            if(!sprites[i].spriteSheet.used){
+                ctx.drawImage(
+                    sprites[i].animation, 
+                    sprites[i].x - camera.x,
+                    sprites[i].y - camera.y, 
+                    sprites[i].width, 
+                    sprites[i].height
+                );
+            }
+            else{
+                ctx.drawImage(
+                    sprites[i].animation,
+                    sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width), 
+                    sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
+                    sprites[i].spriteSheet.width, 
+                    sprites[i].spriteSheet.height,
+                    sprites[i].x - camera.x,
+                    sprites[i].y - camera.y, 
+                    sprites[i].width, 
+                    sprites[i].height
+                );
+            }
         }
-        else{
-            ctx.drawImage(
-                sprites[i].animation,
-                sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width), 
-                sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
-                sprites[i].spriteSheet.width, 
-                sprites[i].spriteSheet.height,
-                sprites[i].x - camera.x,
-                sprites[i].y - camera.y, 
-                sprites[i].width, 
-                sprites[i].height
-            );
-        }
-
-         // Draw debug hitbox
-        //  ctx.strokeStyle = "red"; // Set outline color for hitbox
-        //  ctx.lineWidth = 1;       // Set the thickness of the outline
-        //  ctx.strokeRect(
-        //      sprites[i].x - camera.x, // Adjust hitbox position based on camera
-        //      sprites[i].y - camera.y,
-        //      sprites[i].width,
-        //      sprites[i].height
-        //  );
+        
     }
-    
-    // ctx.drawImage(player.animation, player.x, player.y, player.width, player.height);
 
+    ctx2.clearRect(0, 0, canvas.width, canvas.height);
+    for(let i=0; i < sprites.length; i++){
+        if(sprites[i] !== sky){
+            if(!sprites[i].spriteSheet.used){
+                ctx2.drawImage(
+                    sprites[i].animation, 
+                    sprites[i].x - camera2.x,
+                    sprites[i].y - camera2.y, 
+                    sprites[i].width, 
+                    sprites[i].height
+                );
+            }
+            else{
+                ctx2.drawImage(
+                    sprites[i].animation,
+                    sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width), 
+                    sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
+                    sprites[i].spriteSheet.width, 
+                    sprites[i].spriteSheet.height,
+                    sprites[i].x - camera2.x,
+                    sprites[i].y - camera2.y, 
+                    sprites[i].width, 
+                    sprites[i].height
+                );
+            }
+        }
+        
+    }
 }
 function isTouchingGround(sprite){
     for(i=0; i<grounds.length; i++){
