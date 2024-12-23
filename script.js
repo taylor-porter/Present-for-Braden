@@ -11,10 +11,11 @@ let acceleration = 1.3;
 let friction = 1;
 let jumpForce = 25;
 let gravity = 1.7;
-let cameraSpeed = 0.3;
+let cameraSpeed = 0.3; //0.3
 let fallHeight = 700;
 let bulletSpeed = 20;
-ctx.imageSmoothingEnabled = false;
+let cameraBorder = 150;
+// ctx.imageSmoothingEnabled = false;
 
 let camera = {
     x: 0,
@@ -44,6 +45,9 @@ function createSprite(posX, posY, width, height){
         "jumpCount" : 2,
         "facing": "right", 
         "deleted": false,
+        "takesDamage": false,
+        "hasGravity" : false,
+        "bouncedOn" : false,
         "spriteSheet" : {
             "used" : false,
             "x" : 0, 
@@ -63,18 +67,25 @@ let sky = createSprite(0,0, canvas.width, canvas.height)
 sky.animation.src = "images/sky.jpg"
 sprites.push(sky);
 
-let player = createSprite(200, 100, 70, 70);
+let player = createSprite(200, 100, 50, 100, "player");
 sprites.push(player);
-player.animation.src = "images/mario-sprite-sheet-2.png";
+player.animation.src = "images/braden-sprite-sheet.png";
 
 player.spriteSheet.used = true;
-player.spriteSheet.x = 7;
-player.spriteSheet.y = 2;
-player.spriteSheet.width = (405 / 14);
-player.spriteSheet.height = (188 / 6);
-player.spriteSheet.margin = -5;
-player.spriteSheet.frameRate = 3;
+player.spriteSheet.x = 2;
+player.spriteSheet.y = 0;
+player.spriteSheet.width = 300;
+player.spriteSheet.height = 823;
+player.spriteSheet.margin = 0;
+player.spriteSheet.frameRate = 5;
+player.takesDamage = true;
+player.hasGravity = true;
 
+let sonic = createSprite(500, 100, 70, 70, "sonic");
+sonic.animation.src = "images/sonic.png";
+sonic.takesDamage = true;
+sonic.hasGravity = true;
+sprites.push(sonic);
 
 function animateSprite(sprite, startFrame, endFrame){
     if(sprite.spriteSheet.currentFrame < sprite.spriteSheet.frameRate){
@@ -92,11 +103,6 @@ function animateSprite(sprite, startFrame, endFrame){
 }
 
 
-
-
-let sonic = createSprite(500, 100, 70, 70);
-sonic.animation.src = "images/sonic.png";
-sprites.push(sonic);
 let grounds = [];
 
 for(i=0; i<5; i++){
@@ -104,18 +110,37 @@ for(i=0; i<5; i++){
 }
 
 grounds.push(createSprite(350, 80, 100, 75));
-grounds.push(createSprite(50, 50, 100, 75));
+grounds.push(createSprite(600, 50, 100, 75));
+grounds.push(createSprite(850, 10, 100, 75))
+grounds.push(createSprite(1050, -150, 100, 75))
+grounds.push(createSprite(800, -300, 100, 75))
+grounds.push(createSprite(1050, -450, 100, 75))
 
-let bullets = [];
+createSpriteGroup(grounds, "images/ground.png");
 
+let enemies = []
+enemies.push(createSprite(400, 200, 50, 50));
+enemies.push(createSprite(600, 200, 50, 50))
+enemies.push(createSprite(900, 200, 50, 50))
+createSpriteGroup(enemies, "images/enemy.webp");
 
-
-
-for(i=0; i < grounds.length; i++){
-    sprites.push(grounds[i])
-    grounds[i].animation.src = "images/ground.png";
+for(let i=0; i<enemies.length; i++){
+    enemies[i].takesDamage = true;
+    enemies[i].hasGravity = true;
+    enemies[i].velocityX  = -3;
 
 }
+
+function createSpriteGroup(list, animationSource){
+    for(i=0; i < list.length; i++){
+        sprites.push(list[i])
+        if(animationSource !== undefined){
+            list[i].animation.src = animationSource;
+        }
+    }
+}
+
+let bullets = [];
 
 
 
@@ -124,7 +149,9 @@ let loadedImages = 0;
 function checkImagesLoaded() {
     loadedImages++;
     if (loadedImages === 2) {
-        gameLoop();
+        //drawSprites();
+        gameLoop()
+        startStop.style.display = "none";
     }
 }
 
@@ -172,11 +199,53 @@ window.addEventListener("keyup", function(event){
     keys[event.key] = false;
 })
 
+let startStop = document.getElementById("startStop");
+
+startStop.addEventListener("click", function(){
+    gameLoop()
+    startStop.style.display = "none";
+})
+
+function followSprite(sprite){ //if the player is past the camera border, push the camera
+    //left/right
+    if(sprite.x + sprite.width > targetX + (camera.width - cameraBorder) || sprite.x < targetX + cameraBorder){
+        targetX += sprite.velocityX;
+    }
+    //up/down
+    if(sprite.y + sprite.height > targetY + (camera.height - cameraBorder) || sprite.y < targetY + cameraBorder){
+        if((sprite.velocityY === 1.7) && isTouchingGround(sprite)[0]){
+            targetY += sprite.velocityY - 1.7;
+        }
+        else{
+            
+            targetY += sprite.velocityY;
+        }
+    }
+    if(sprite.x + sprite.width > targetX + camera.width){
+        sprite.x = targetX + camera.width - sprite.width
+    }
+    if(sprite.x < targetX){
+        sprite.x = targetX;
+    }
+}
+
+let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
+let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)
+
+function centerCamera(sprite){
+    targetX = sprite.x - camera.width / 2;
+    targetY = sprite.y - camera.height / 2;
+}
+
 function gameLoop(){
     // Move the camera to follow the player
-    let targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
-    let targetY = player.y - camera.height / 2 ; // Center the camera on the player (vertical)
-    
+    followSprite(player);
+    followSprite(sonic);
+
+    // let targetY = (player.y + sonic.y) / 2 - camera.height / 2 
+    // let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
+
+
     camera.x = lerp(camera.x, targetX, cameraSpeed);
     camera.y = lerp(camera.y, targetY, cameraSpeed);
 
@@ -185,23 +254,25 @@ function gameLoop(){
 
     giveMovement(player, "ArrowLeft", "ArrowRight", "ArrowDown"); 
     giveMovement(sonic, "a", "d", "s");
-
+    
 
     //change sprite animations when moving and/or facing left
     if (player.facing === "left"){
+        player.spriteSheet.y = 1;
         if(Math.abs(player.velocityX) > 1){
-            animateSprite(player, 3, 4);
+            animateSprite(player, 0, 2);
         }
         else{
-            player.spriteSheet.x = 6;
+            //player.spriteSheet.x = 6;
         }
     }
     else{
+        player.spriteSheet.y = 0;
         if(Math.abs(player.velocityX) > 1){
-            animateSprite(player, 8, 9);
+            animateSprite(player, 0, 2);
         }
         else{
-            player.spriteSheet.x = 7;
+            //player.spriteSheet.x = 7;
         }
     }
 
@@ -214,34 +285,39 @@ function gameLoop(){
     
     //delete deleted sprites
     sprites = sprites.filter(sprite => !sprite.deleted);
-    bullets = bullets.filter(bullet => !bullet.deleted)
+    bullets = bullets.filter(bullet => !bullet.deleted);
 
     //if a sprite is touching a bullet, delete the bullet and the sprite
     for(let i=0; i<bullets.length; i++){
-        if(isTouching(bullets[i], sonic)){
-            if(bullets[i].bullet.firedFrom !== "sonic"){
-                sonic.deleted = true;
-                bullets[i].deleted = true;
-            }  
-        }
-        if(isTouching(bullets[i], player)){
-            if(bullets[i].bullet.firedFrom !== "player"){
-                player.deleted = true;
-                bullets[i].deleted = true;
-
+        for(let j=0; j<sprites.length; j++){
+            if(isTouching(bullets[i], sprites[j]) && sprites[j].takesDamage){
+                if(bullets[i].bullet.firedFrom !== sprites[j]){
+                    sprites[j].deleted = true;
+                    bullets[i].deleted = true;
+                }  
             }
-        }
-        if(bullets[i].x < camera.x || bullets[i].x > camera.x + camera.width){
-            bullets[i].deleted = true;
-            console.log("bullet deleted")
         }
     }
     
     //gravity
-    giveGravity(player);
-    giveGravity(sonic);
-    collide(sonic, player);
-    collide(player, sonic);
+
+    for(let i=0; i<sprites.length; i++){
+        if(sprites[i].hasGravity){
+            giveGravity(sprites[i]);
+        }
+    }
+
+    //Loop through enemies
+    for(let i=0; i<enemies.length; i++){
+        mutualCollide(player, enemies[i], 1);
+        mutualCollide(sonic, enemies[i], 1);
+        
+        if(enemies[i].bouncedOn){
+            enemies[i].deleted = true;
+        }
+    }
+    
+    mutualCollide(sonic, player, 2);
 
     createVelocity();
     drawSprites();
@@ -251,8 +327,15 @@ function gameLoop(){
     if(player.y > fallHeight){
         player.x = 200;
         player.y = 100;
+        centerCamera(player);
+    }
+    if(sonic.y > fallHeight){
+        sonic.x = 200;
+        sonic.y = 100;
+        centerCamera(sonic);
     }
 }
+
 
 
 function createVelocity(){
@@ -297,14 +380,24 @@ function drawSprites() {
                 sprites[i].height
             );
         }
+
+         // Draw debug hitbox
+        //  ctx.strokeStyle = "red"; // Set outline color for hitbox
+        //  ctx.lineWidth = 1;       // Set the thickness of the outline
+        //  ctx.strokeRect(
+        //      sprites[i].x - camera.x, // Adjust hitbox position based on camera
+        //      sprites[i].y - camera.y,
+        //      sprites[i].width,
+        //      sprites[i].height
+        //  );
     }
     
     // ctx.drawImage(player.animation, player.x, player.y, player.width, player.height);
 
 }
-function isTouchingGround(){
+function isTouchingGround(sprite){
     for(i=0; i<grounds.length; i++){
-        if(isTouching(player, grounds[i])){
+        if(isTouching(sprite, grounds[i])){
             return [true, i];
         }
     }
@@ -312,33 +405,35 @@ function isTouchingGround(){
 }
 
 function collide(sprite1, sprite2){
-    if(isTouching(sprite1, sprite2)){
+    if(!sprite1.deleted && !sprite2.deleted){
+        if(isTouching(sprite1, sprite2)){
 
-        overlapX = Math.min(
-            sprite1.x + sprite1.width - sprite2.x, // right of sprite1 colliding w/ left of sprite2
-            sprite2.x + sprite2.width - sprite1.x // left of sprite 1 overlap with sprite2
-        )
-        overlapY = Math.min(
-            sprite1.y + sprite1.height - sprite2.y, // bottom of sprite1 on top of sprite2
-            sprite2.y + sprite2.height - sprite1.y // top of sprite1 on bottom of sprite2
-        )
-
-        if(overlapX < overlapY){ // horizontal collision
-            if(sprite1.x < sprite2.x){ // if colliding from right
-                sprite1.x = sprite2.x - sprite1.width;
-            }
-            else if(sprite1.x > sprite2.x){ // if coming from left
-                sprite1.x = sprite2.x + sprite2.width;
-            }
-        } else{
-            if(sprite1.y < sprite2.y){ // if colliding from the top
-                sprite1.velocityY = 0;
-                sprite1.y = sprite2.y - sprite1.height;
-                sprite1.jumpCount = 0;
-            }
-            else if(sprite1.y > sprite2.y){ // if colliding from the bottom
-                sprite1.y = sprite2.y + sprite2.height;
-                sprite1.velocityY = 0;
+            overlapX = Math.min(
+                sprite1.x + sprite1.width - sprite2.x, // right of sprite1 colliding w/ left of sprite2
+                sprite2.x + sprite2.width - sprite1.x // left of sprite 1 overlap with sprite2
+            )
+            overlapY = Math.min(
+                sprite1.y + sprite1.height - sprite2.y, // bottom of sprite1 on top of sprite2
+                sprite2.y + sprite2.height - sprite1.y // top of sprite1 on bottom of sprite2
+            )
+    
+            if(overlapX < overlapY){ // horizontal collision
+                if(sprite1.x < sprite2.x){ // if colliding from right
+                    sprite1.x = sprite2.x - sprite1.width;
+                }
+                else if(sprite1.x > sprite2.x){ // if coming from left
+                    sprite1.x = sprite2.x + sprite2.width;
+                }
+            } else{
+                if(sprite1.y < sprite2.y){ // if colliding from the top
+                    sprite1.velocityY = 0;
+                    sprite1.y = sprite2.y - sprite1.height;
+                    sprite1.jumpCount = 0;
+                }
+                else if(sprite1.y > sprite2.y){ // if colliding from the bottom
+                    sprite1.y = sprite2.y + sprite2.height;
+                    sprite1.velocityY = 0;
+                }
             }
         }
     }
@@ -348,8 +443,10 @@ function giveGravity(sprite){
     for(i=0; i < grounds.length; i++){
         collide(sprite, grounds[i]);
   }
-  if(isTouchingGround()[0]){
+  let touching = isTouchingGround(sprite)[0]
+  if(touching){
     sprite.jumpCount = 0;
+    sprite.velocityY = 0;
   }
   else{
       sprite.velocityY += gravity;
@@ -388,11 +485,62 @@ function shootBullet(sprite){
         bullets[bulletCount].velocityX = -1 * bulletSpeed;
     }
     if(sprite === player){
-        bullets[bulletCount].bullet.firedFrom = "player"
+        bullets[bulletCount].bullet.firedFrom = player
     }
     else if(sprite === sonic){
-        bullets[bulletCount].bullet.firedFrom = "sonic"
+        bullets[bulletCount].bullet.firedFrom = sonic
     }
     sprites.push(bullets[bulletCount])
     bulletCount++;
+}
+
+function mutualCollide(sprite1, sprite2, bounce){
+    if(!sprite1.deleted && !sprite2.deleted){
+        if(isTouching(sprite1, sprite2)){
+
+            overlapX = Math.min(
+                sprite1.x + sprite1.width - sprite2.x, // right of sprite1 colliding w/ left of sprite2
+                sprite2.x + sprite2.width - sprite1.x // left of sprite 1 overlap with sprite2
+            )
+            overlapY = Math.min(
+                sprite1.y + sprite1.height - sprite2.y, // bottom of sprite1 on top of sprite2
+                sprite2.y + sprite2.height - sprite1.y // top of sprite1 on bottom of sprite2
+            )
+    
+            if(overlapX < overlapY){ // horizontal collision
+                if(sprite1.x < sprite2.x){ // if colliding from right
+                    sprite1.x -= overlapX / 2; //push sprite1 left
+                    sprite2.x += overlapX / 2; //push sprite2 right
+                }
+                else if(sprite1.x > sprite2.x){ // if coming from left
+                    sprite1.x += overlapX / 2; //push sprite1 right
+                    sprite2.x -= overlapX / 2; //push sprite2 left
+                }
+                const tempVX = sprite1.velocityX;
+                sprite1.velocityX = sprite2.velocityX * bounce; // Exchange velocities with some damping
+                sprite2.velocityX = tempVX * bounce;
+            } else{
+                if(sprite1.y < sprite2.y){ // if colliding from the top
+                    sprite1.y -= overlapY / 2; // Push sprite1 up
+                    sprite2.y += overlapY / 2; // Push sprite2 down
+                    sprite1.velocityY = 0;
+                    sprite2.velocityY = 0;
+                    sprite1.jumpCount = 0; // Reset jumps for grounded sprites
+                    
+                    sprite2.bouncedOn = true; //used to check if player is on top of enemies
+                    
+                }
+                else if(sprite1.y > sprite2.y){ // if colliding from the bottom
+                    sprite1.y += overlapY / 2; // Push sprite1 down
+                    sprite2.y -= overlapY / 2; // Push sprite2 up
+                    sprite1.velocityY = 0;
+                    sprite2.velocityY = 0;
+                    sprite2.jumpCount = 0;
+
+                    sprite1.bouncedOn = true; //used to check if player is on top of enemies
+                }
+            }
+        }
+    }
+
 }
