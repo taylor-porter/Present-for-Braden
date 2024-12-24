@@ -10,7 +10,6 @@ const sonicLives = document.getElementById("sonicLives")
 let sprites = [];
 let key = "";
 let upWasPressed = false;
-let bulletCount = 0;
 let splitScreen = false;
 let playerSide = "left";
 
@@ -26,6 +25,7 @@ let bulletSpeed = 20;
 let cameraBorder = 150;
 // ctx.imageSmoothingEnabled = false;
 let zoom = 1.7;
+let multiplayer = true;
 
 
 let camera = {
@@ -91,7 +91,7 @@ let sky2 = createSprite(0,0,canvas2.width, canvas2.height)
 sky2.animation.src = "images/sky.jpg"
 sprites.push(sky2);
 
-let player = createSprite(200, 100, 50, 100, "player");
+let player = createSprite(150, 100, 50, 100, "player");
 sprites.push(player);
 player.animation.src = "images/braden-sprite-sheet.png";
 
@@ -105,11 +105,15 @@ player.spriteSheet.frameRate = 5;
 player.takesDamage = true;
 player.hasGravity = true;
 
-let sonic = createSprite(500, 100, 70, 70, "sonic");
-sonic.animation.src = "images/sonic.png";
+let sonic = createSprite(250, 100, 100, 100, "sonic");
+sonic.animation.src = "images/sonic.png"
 sonic.takesDamage = true;
 sonic.hasGravity = true;
 sprites.push(sonic);
+
+if(!multiplayer){
+    sonic.deleted = true;
+}
 
 function animateSprite(sprite, startFrame, endFrame){
     if(sprite.spriteSheet.currentFrame < sprite.spriteSheet.frameRate){
@@ -129,23 +133,49 @@ function animateSprite(sprite, startFrame, endFrame){
 
 let grounds = [];
 
-for(i=0; i<5; i++){
+for(i=0; i<10; i++){
     grounds[i] = createSprite(i * 300, 250, 300, 150);
 }
 
-grounds.push(createSprite(350, 80, 100, 75));
-grounds.push(createSprite(600, 50, 100, 75));
-grounds.push(createSprite(850, 10, 100, 75))
-grounds.push(createSprite(1050, -150, 100, 75))
-grounds.push(createSprite(800, -300, 100, 75))
-grounds.push(createSprite(1050, -450, 100, 75))
+function createGround(x, y, width, height){
+    let w = width;
+    let h = height;
+    if(w === undefined){
+        w = 100;
+    }
+    if(h === undefined){
+        h = 75;
+    }
+    grounds.push(createSprite(x, y, w, h));
+}
+createGround(350, 80, 100, 75);
+createGround(600, 50, 100, 75);
+createGround(850, 10, 100, 75)
+createGround(1050, -150, 100, 75)
+createGround(800, -300, 100, 75)
+createGround(1050, -450, 100, 75)
+
 
 createSpriteGroup(grounds, "images/ground.png");
 
+function createEnemy(x, y, width, height){
+    let w = width;
+    let h = height;
+    if(w === undefined){
+        w = 50;
+    }
+    if(h === undefined){
+        h = 50;
+    }
+    grounds.push(createSprite(x, y, w, h));
+}
+
 let enemies = []
-enemies.push(createSprite(400, 200, 50, 50));
-enemies.push(createSprite(600, 200, 50, 50))
-enemies.push(createSprite(900, 200, 50, 50))
+
+// enemies.push(createSprite(400, 200, 50, 50));
+// enemies.push(createSprite(600, 200, 50, 50))
+// enemies.push(createSprite(900, 200, 50, 50))
+
 createSpriteGroup(enemies, "images/enemy.webp");
 
 for(let i=0; i<enemies.length; i++){
@@ -230,7 +260,7 @@ startStop.addEventListener("click", function(){
     startStop.style.display = "none";
 })
 
-function followSprite(sprite){ //if the player is past the camera border, push the camera
+function pushCamera(sprite){ //if the player is past the camera border, push the camera
     //left/right
     if(sprite.x + sprite.width > targetX + (camera.width - cameraBorder) || sprite.x < targetX + cameraBorder){
         targetX += sprite.velocityX;
@@ -246,8 +276,28 @@ function followSprite(sprite){ //if the player is past the camera border, push t
     }
 }
 
-let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
-let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)
+function isInBounds(sprite){ //if the player is past the camera border, push the camera
+    //left/right
+    if(!splitScreen){
+        if(sprite.x > targetX + camera.width || sprite.x + sprite.width < targetX){
+            return false;
+        }
+        //up/down
+        if(sprite.y > targetY + camera.height || sprite.y + sprite.height < targetY){
+            return false;
+        }
+    }
+    return true;
+}
+
+if(multiplayer){
+    let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
+    let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)    
+}
+else{
+    let targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
+    let targetY = player.y - camera.height / 2 ; // Center the camera on the player (vertical)    
+}
 
 let transitionProgress = 1;
 let transitioning = false;
@@ -266,12 +316,7 @@ function updateTransition(){
         }
     }
 }
-
-
-
-function gameLoop(){
-    // Move the camera to follow the player
-    //
+function resizeCanvas(){
     canvas.width = window.innerWidth / zoom;
     canvas.height = window.innerHeight / zoom;
 
@@ -289,8 +334,14 @@ function gameLoop(){
 
     sky2.width = canvas2.width;
     sky2.height = canvas2.height;
+}
 
-    
+window.addEventListener("resize", resizeCanvas)
+
+
+function gameLoop(){
+    // Move the camera to follow the player
+    //
     updateTransition();
     if((isTouchingGround(player)[0] && isTouchingGround(sonic)[0]) || isTouching(player, sonic)){
         if(Math.abs(player.x - sonic.x) < camera.width - 100 && Math.abs(player.y - sonic.y) < camera.height -100){
@@ -298,6 +349,10 @@ function gameLoop(){
                 splitScreen = false;
                 startTransition();
             }
+        }
+        else if(player.deleted || sonic.deleted){
+            splitScreen = false;
+            startTransition();
         }
         else if(!splitScreen){
             splitScreen = true;
@@ -310,8 +365,30 @@ function gameLoop(){
             }
         }
     }
-    
-    if(!splitScreen){
+    if(player.deleted && sonic.deleted){
+        
+    }
+    else if(sonic.deleted){
+        let targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
+        let targetY = player.y - camera.height / 2 ; // Center the camera on the player (vertical)    
+
+        camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+        camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
+
+        canvas2.classList.remove("visible");
+        canvas.style.gridColumn = "1/7"
+    }
+    else if(player.deleted){
+        let targetX = sonic.x - camera.width / 2;  // Center the camera on the player (horizontal)
+        let targetY = sonic.y - camera.height / 2 ; // Center the camera on the player (vertical)    
+
+        camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+        camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
+
+        canvas2.classList.remove("visible");
+        canvas.style.gridColumn = "1/7"
+    }
+    else if(!splitScreen){
         // followSprite(player);
         // followSprite(sonic);
 
@@ -341,11 +418,11 @@ function gameLoop(){
             camera2.y = lerp(camera2.y, targetY2, cameraSpeed * transitionProgress);
         }
         else{
-            let targetX2 = player.x - camera.width / 2;
-            let targetY2 = player.y - camera.height / 2;
-    
             let targetX = sonic.x - camera2.width / 2;
             let targetY = sonic.y - camera2.height / 2 - 30;
+            
+            let targetX2 = player.x - camera.width / 2;
+            let targetY2 = player.y - camera.height / 2;
 
             camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
             camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
@@ -403,12 +480,14 @@ function gameLoop(){
 
     //if a sprite is touching a bullet, delete the bullet and the sprite
     for(let i=0; i<bullets.length; i++){
-        for(let j=0; j<sprites.length; j++){
-            if(isTouching(bullets[i], sprites[j]) && sprites[j].takesDamage){
-                if(bullets[i].bullet.firedFrom !== sprites[j]){
-                    sprites[j].lives -= 1;
-                    bullets[i].deleted = true;
-                }  
+        if(isInBounds(bullets[i])){
+            for(let j=0; j<sprites.length; j++){
+                if(isTouching(bullets[i], sprites[j]) && sprites[j].takesDamage){
+                    if(bullets[i].bullet.firedFrom !== sprites[j]){
+                        sprites[j].lives -= 1;
+                        bullets[i].deleted = true;
+                    }  
+                }
             }
         }
     }
@@ -419,31 +498,37 @@ function gameLoop(){
     if(sonic.lives >= 0){
         sonicLives.innerText = "lives: " + sonic.lives;
     }
+    if(!multiplayer){
+        sonicLives.style.display = "none";
+    }
     
     
     //gravity
 
     //Loop through Sprites
-    for(let i=0; i<sprites.length; i++){
-        if(sprites[i].hasGravity){
-            giveGravity(sprites[i]);
+    sprites.filter(sprite => sprite.hasGravity).forEach(sprite => {
+        giveGravity(sprite);
+    });
+    
+    sprites.filter(sprite => sprite.takesDamage).forEach(sprite => {
+        if(sprite.lives <= 0){
+            sprite.deleted = true;
+            sprite.lives = 0;
         }
-        if(sprites[i].lives <= 0){
-            sprites[i].deleted = true;
-            sprites[i].lives = 0;
-        }
-    }
+    });
+        
 
     //Loop through enemies
     for(let i=0; i<enemies.length; i++){
         
-        if(isTouching(enemies[i], player)){
+        if(isTouching(enemies[i], player) && !enemies[i].deleted){
             mutualCollide(player, enemies[i], 1);
             if(enemies[i].bouncedOn){
                 enemies[i].deleted = true;
             }
             else{
                 player.lives --;
+                enemies[i].deleted = true;
             }
         }
 
@@ -465,6 +550,7 @@ function gameLoop(){
     createVelocity();
     drawSprites();
     requestAnimationFrame(gameLoop);
+    // setTimeout(gameLoop, 16)
 
     //if the player falls off the map
     if(player.y > fallHeight){
@@ -638,22 +724,24 @@ function giveMovement(sprite, left, right, down){
       }
 }
 function shootBullet(sprite){
-    bullets[bulletCount] = (createSprite(sprite.x, sprite.y + sprite.width / 3, 10, 10))
-    bullets[bulletCount].animation.src = "images/bullet.png";
-    if(sprite.facing === "right"){
-        bullets[bulletCount].velocityX = bulletSpeed;
-    }
-    else{
-        bullets[bulletCount].velocityX = -1 * bulletSpeed;
-    }
-    if(sprite === player){
-        bullets[bulletCount].bullet.firedFrom = player
-    }
-    else if(sprite === sonic){
-        bullets[bulletCount].bullet.firedFrom = sonic
-    }
-    sprites.push(bullets[bulletCount])
-    bulletCount++;
+    if(!sprite.deleted){
+        let newBullet = (createSprite(sprite.x, sprite.y + sprite.width / 3, 10, 10))
+        newBullet.animation.src = "images/bullet.png";
+        if(sprite.facing === "right"){
+            newBullet.velocityX = bulletSpeed;
+        }
+        else{
+            newBullet.velocityX = -1 * bulletSpeed;
+        }
+        if(sprite === player){
+            newBullet.bullet.firedFrom = player
+        }
+        else if(sprite === sonic){
+            newBullet.bullet.firedFrom = sonic
+        }
+        sprites.push(newBullet)
+        bullets.push(newBullet)
+    }  
 }
 
 function mutualCollide(sprite1, sprite2, bounce){
