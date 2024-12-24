@@ -174,7 +174,7 @@ function checkImagesLoaded() {
     loadedImages++;
     if (loadedImages === 2) {
         //drawSprites();
-        gameLoop()
+        gameLoop();
         startStop.style.display = "none";
     }
 }
@@ -267,7 +267,11 @@ function updateTransition(){
     }
 }
 
-function resizeGame(){
+
+
+function gameLoop(){
+    // Move the camera to follow the player
+    //
     canvas.width = window.innerWidth / zoom;
     canvas.height = window.innerHeight / zoom;
 
@@ -286,14 +290,6 @@ function resizeGame(){
     sky2.width = canvas2.width;
     sky2.height = canvas2.height;
 
-}
-resizeGame();
-window.addEventListener("resize", resizeGame())
-
-function gameLoop(){
-    // Move the camera to follow the player
-    //
-    
     
     updateTransition();
     if((isTouchingGround(player)[0] && isTouchingGround(sonic)[0]) || isTouching(player, sonic)){
@@ -417,8 +413,13 @@ function gameLoop(){
         }
     }
 
-    playerLives.innerText = "Lives: " + player.lives;
-    sonicLives.innerText = "lives: " + sonic.lives;
+    if(player.lives >= 0){
+        playerLives.innerText = "Lives: " + player.lives;
+    }
+    if(sonic.lives >= 0){
+        sonicLives.innerText = "lives: " + sonic.lives;
+    }
+    
     
     //gravity
 
