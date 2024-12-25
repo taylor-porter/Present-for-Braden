@@ -29,9 +29,29 @@ let bulletSpeed = 20;
 let cameraBorder = 150;
 // ctx.imageSmoothingEnabled = false;
 let zoom = 1.3; //1.5
-let multiplayer = true;
+let multiplayer = false;
 let enemySpace = 1;
 
+const startStop = document.getElementById("startStop");
+const overlay = document.getElementById("container")
+const multiplayerButton = document.getElementById("multiplayer")
+
+startStop.addEventListener("click", function(){
+    gameLoop()
+    overlay.classList.remove("paused");
+
+})
+
+multiplayerButton.addEventListener("click", function(){
+    if(!multiplayer){
+        multiplayer = true;
+        multiplayerButton.innerText = "Multiplayer: On"
+    }
+    else{
+        multiplayer = false;
+        multiplayerButton.innerText = "Multiplayer: Off"
+    }
+})
 
 let camera = {
     x: 0,
@@ -97,7 +117,7 @@ let sky2 = createSprite(0,0,canvas2.width, canvas2.height)
 sky2.animation.src = "images/sky.jpg"
 sprites.push(sky2);
 
-let player = createSprite(150, 100, 50, 100, "player");
+let player = createSprite(150, 150, 50, 100, "player");
 sprites.push(player);
 player.animation.src = "images/braden-sprite-sheet.png";
 
@@ -111,7 +131,7 @@ player.spriteSheet.frameRate = 5;
 player.takesDamage = true;
 player.hasGravity = true;
 
-let sonic = createSprite(250, 100, 100, 100, "sonic");
+let sonic = createSprite(250, 150, 100, 100, "sonic");
 sonic.animation.src = "images/sonic.png"
 sonic.takesDamage = true;
 sonic.hasGravity = true;
@@ -120,10 +140,6 @@ sprites.push(sonic);
 function getRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
-
-if(!multiplayer){
-    sonic.deleted = true;
-}
 
 function animateSprite(sprite, startFrame, endFrame){
     if(sprite.spriteSheet.currentFrame < sprite.spriteSheet.frameRate){
@@ -243,17 +259,6 @@ endPoint = createSprite(2750, -1200, 100, 100);
 endPoint.animation.src = "images/santas-sleigh.png";
 sprites.push(endPoint);
 
-let loadedImages = 0;
-
-function checkImagesLoaded() {
-    loadedImages++;
-    if (loadedImages === 2) {
-        //drawSprites();
-        gameLoop();
-        startStop.style.display = "none";
-    }
-}
-
 player.animation.onload = checkImagesLoaded;
 grounds[0].animation.onload = checkImagesLoaded;
 
@@ -299,12 +304,7 @@ window.addEventListener("keyup", function(event){
     keys[event.key] = false;
 })
 
-let startStop = document.getElementById("startStop");
 
-startStop.addEventListener("click", function(){
-    gameLoop()
-    startStop.style.display = "none";
-})
 
 function pushCamera(sprite){ //if the player is past the camera border, push the camera
     //left/right
@@ -384,11 +384,24 @@ function resizeCanvas(){
 
 resizeCanvas();
 
-window.addEventListener("resize", resizeCanvas)
+window.addEventListener("resize", function(){
+    resizeCanvas();
+    drawSprites();
+})
 
+let loadedImages = 0;
+
+function checkImagesLoaded() {
+    loadedImages++;
+    if (loadedImages === 2) {
+        drawSprites();
+    }
+}
 
 function gameLoop(){
-
+    if(!multiplayer){
+        sonic.deleted = true;
+    }
     // Move the camera to follow the player
     //
     console.log(player.x)

@@ -8,13 +8,16 @@
     <link rel="icon" type="image/icon"href="images/present.png">
 </head>
 <body>
-    <div>
+    <div class="container paused" id="container">
+        <div class="overlay"></div>
         <h1 id="playerLives">Lives: </h1>
         <h1 id="sonicLives">Lives: </h1>
         <h1 id="gameState">Game Over!</h1>
+        <h1 id="title">Merry Christmas Braden!</h1>
         <canvas id="game_canvas" width="600"  height="500"></canvas>
         <canvas id="game_canvas_2" width="600"  height="500"></canvas>
         <button id="startStop">Start</button>
+        <button id="multiplayer">Multiplayer: Off</button>
     </div>
     <script src="script.js"></script>
 </body>
