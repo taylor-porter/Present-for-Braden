@@ -20,10 +20,14 @@ h1{
     text-align: center;
 
 }
-#gameState{
+#gameStateMenu{
     grid-column: 3/5;
     grid-row: 2/3;
-    display: none;
+}
+#restart{
+    display:none;
+    font-size: 25px;
+    padding: 15px;
 }
 #playerLives{
     grid-column: 1/2;
@@ -77,11 +81,29 @@ button{
     font-family: "Pixelify Sans", 'Courier New', Courier, monospace;
     display: none;
 }
-.paused #multiplayer{
+.paused #settings{
     display: block;
     grid-column: 3/5;
     grid-row: 3/4;
+}
+.paused #settings button{
+    display: block;
     font-size: 20px;
+    margin: 10px auto;
+    align-self: center;
+    justify-self: center;
+}
+#settings{
+    grid-column: 6/7;
+    grid-row: 3/4;
+}
+#muteButton{
+    /* display: block;
+    grid-column: 6/7;
+    grid-row: 3/4;
+    font-size: 20px;
+    align-self: first baseline;
+    justify-self: right; */
 }
 .paused #startStop{
     display: block;

@@ -12,13 +12,22 @@
         <div class="overlay"></div>
         <h1 id="playerLives">Lives: </h1>
         <h1 id="sonicLives">Lives: </h1>
-        <h1 id="gameState">Game Over!</h1>
         <h1 id="title">Merry Christmas Braden!</h1>
         <canvas id="game_canvas" width="600"  height="500"></canvas>
         <canvas id="game_canvas_2" width="600"  height="500"></canvas>
         <button id="startStop">Start</button>
-        <button id="multiplayer">Multiplayer: Off</button>
+        <div id="gameStateMenu">
+            <h1 id="gameState">Game Over!</h1>
+            <button id="restart">Restart</button>
+        </div>
+        <div id="settings">
+            <button id="multiplayer">Multiplayer: Off</button>
+            <button id="muteButton">Sound: On</button>
+        </div>
     </div>
+    <script src="settings.js"></script>
+    <script src="draw.js"></script>
+    <script src="levels.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
