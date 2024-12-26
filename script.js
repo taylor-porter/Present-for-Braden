@@ -8,11 +8,12 @@ let cameraSpeed = 0.2; //0.3
 let fallHeight = 700;
 let bulletSpeed = 20;
 let cameraBorder = 150;
-let zoom = 1.3; //1.5
+let zoom = 1.3; //1.3
 let multiplayer = false;
 let enemyChance = 1;
 let level = 1;
 let muted = false;
+let startScreen = true;
 
 //Cashed elements
 const canvas = document.getElementById("game_canvas");
@@ -37,17 +38,31 @@ const win = new Audio("audio/win.mp3")
 const music = new Audio("audio/music2.mp3")
 
 let sounds = []
-
+sounds.push(music);
+sounds.push(win);
 
 
 
 //Menu buttons
-startStop.addEventListener("click", function(){
-    gameLoop()
-    overlay.classList.remove("paused");
-    music.play()
-
-})
+if(!startScreen){
+    window.onload = function(){
+        gameLoop()
+        overlay.classList.remove("paused");
+        if(!muted){
+            music.play()
+        }
+    }
+    
+}
+else{
+    startStop.addEventListener("click", function(){
+        gameLoop()
+        overlay.classList.remove("paused");
+        if(!muted){
+            music.play()
+        }
+    })
+}
 
 multiplayerButton.addEventListener("click", function(){
     if(!multiplayer){
@@ -78,6 +93,7 @@ muteButton.addEventListener("click", function(){
     }
     else{
         muted = false;
+        music.play();
         muteButton.innerText = "Sound: On"
     }
 });
@@ -162,18 +178,21 @@ let endPoint = createSprite(0, 0, 0, 0);
 
 function setSprites(){
     music.src = "audio/music" + level + ".mp3"
-    music.play();
+    if(!muted){
+        music.play();
+    }
     music.currentTime = 0;
     gameState.style.display = "none";
     restart.style.display = "none";
 
     //Skies
+    let skyData = levels[level].sky;
     sky = createSprite(0,0, canvas.width, canvas.height)
-    sky.animation.src = "images/sky.jpg"
+    sky.animation.src = skyData.src;
     sprites.push(sky);
 
     sky2 = createSprite(0,0,canvas2.width, canvas2.height)
-    sky2.animation.src = "images/sky.jpg"
+    sky2.animation.src = skyData.src;
     sprites.push(sky2);
 
     //Players
@@ -687,7 +706,10 @@ function gameLoop(){
         gameState.innerText = "You win! Merry Christmas!";
         restart.innerText = "Next Level";
         music.pause();
-        win.play();
+        if(!muted){
+            win.play();
+        }
+        
     }
 
     createVelocity();
