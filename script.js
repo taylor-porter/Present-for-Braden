@@ -60,6 +60,11 @@ if(window.matchMedia("(pointer:coarse)").matches){
     touchscreen = true;
 }
 
+//stop phones from bringing up context menu when you hold on an image
+document.addEventListener('contextmenu', function(event) {
+    event.preventDefault(); // Prevent the context menu globally
+});
+
 document.addEventListener("mousedown", event => {
     setButton(event.target.parentElement, true)
 })
