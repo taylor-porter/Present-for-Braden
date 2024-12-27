@@ -126,6 +126,10 @@ if(!startScreen){
         if(!muted){
             music.play()
         }
+        if(touchscreen){
+            goFullscreen();
+        }
+        
     }
     
 }
@@ -139,6 +143,10 @@ else{
         if(!muted){
             music.play()
         }
+        if(touchscreen){
+            goFullscreen();
+        }
+        
     })
 }
 
@@ -256,7 +264,6 @@ let endPoint = createSprite(0, 0, 0, 0);
 
 
 function setSprites(){
-
     music.src = "audio/music" + level + ".mp3"
     if(!muted){
         music.play();
@@ -515,6 +522,16 @@ function resizeCanvas(){
 }
 
 resizeCanvas();
+
+function goFullscreen() {
+    if (canvas.requestFullscreen) {
+      canvas.requestFullscreen();
+    } else if (canvas.webkitRequestFullscreen) {
+      canvas.webkitRequestFullscreen(); // For older webkit browsers
+    } else if (canvas.mozRequestFullscreen) {
+      canvas.mozRequestFullscreen(); // For older Mozilla browsers
+    }
+  }
 
 window.addEventListener("resize", function(){
     resizeCanvas();
