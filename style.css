@@ -171,5 +171,15 @@ button{
 button#jumpButton{
     width: 33%;
     grid-column: 1/4;
+    grid-row:1/4;
     align-self: last baseline;
+}
+#lowerButtons{
+    grid-column: 1/4;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+#lowerButtons button{
+    display: inline;
+
 }
