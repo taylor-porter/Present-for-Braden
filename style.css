@@ -5,9 +5,8 @@ html, body{
     color: white;
     font-family: "Pixelify Sans", 'Courier New', Courier, monospace;
 }
-*{
-    position: relative;
-}
+
+
 .container{
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -43,11 +42,13 @@ h1{
     align-self:first baseline;
 }
 #game_canvas{
+    position: relative;
     z-index: -2;
     grid-column: 1/7;
     grid-row: 1/4;
 }
 #game_canvas_2{
+    position: relative;
     z-index: -3;
     grid-column: 4/7;
     grid-row: 1/4;
@@ -109,10 +110,12 @@ button{
     justify-self: right; */
 }
 .paused #startStop{
+    position: relative;
     display: block;
     z-index: 3;
 }
 .paused .overlay{
+    position: relative;
     z-index: -1;
     background-color: rgba(0,0,0,0.3 );
     background-image: url("images/background-2.png");
