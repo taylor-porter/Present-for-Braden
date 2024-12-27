@@ -8,7 +8,7 @@ html, body{
 .container{
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: 1fr 1fr 1fr;
+    /* grid-template-rows: 1fr 1fr 1fr; */
     width: 100%;
     height: 100vh;
     align-items: center;
@@ -126,4 +126,44 @@ button{
     display: block;
     grid-column: 3/5;
     grid-row: 1/2;
+}
+
+#mobileButtons{
+    display: none;
+    grid-column: 1/3;
+    grid-row:3/4;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 25vw;
+    min-width: 35vh;
+    grid-template-columns: repeat(3, 1fr);
+    justify-items: center;
+    background-color: transparent;
+    margin: 0;
+    align-self: last baseline;
+}
+#mobileButtons button{
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    align-self: first baseline;
+    gap: 0;
+    border: none;
+    outline: none;
+    font-size: 0px;
+}
+#mobileButtons button img{
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    object-fit: contain;
+}
+button#jumpButton{
+    width: 33%;
+    grid-column: 1/4;
+    align-self: last baseline;
 }

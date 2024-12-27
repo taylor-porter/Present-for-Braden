@@ -41,7 +41,12 @@ let sounds = []
 sounds.push(music);
 sounds.push(win);
 
+let touchscreen = false;
+const mobileButtons = document.getElementById("mobileButtons")
 
+if(window.matchMedia("(pointer:coarse)").matches){
+    touchscreen = true;
+}
 
 //Menu buttons
 if(!startScreen){
@@ -100,6 +105,7 @@ muteButton.addEventListener("click", function(){
 
 //Create sprites
 let sprites = [];
+
 function createSprite(posX, posY, width, height){
     return {
         "x" : posX,
@@ -177,6 +183,9 @@ let endPoint = createSprite(0, 0, 0, 0);
 
 
 function setSprites(){
+    if(touchscreen){
+        mobileButtons.style.display = "grid"
+    }
     music.src = "audio/music" + level + ".mp3"
     if(!muted){
         music.play();
