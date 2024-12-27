@@ -53,6 +53,9 @@ if(!startScreen){
     window.onload = function(){
         gameLoop()
         overlay.classList.remove("paused");
+        if(touchscreen){
+            mobileButtons.style.display = "grid"
+        }
         if(!muted){
             music.play()
         }
@@ -63,6 +66,9 @@ else{
     startStop.addEventListener("click", function(){
         gameLoop()
         overlay.classList.remove("paused");
+        if(touchscreen){
+            mobileButtons.style.display = "grid"
+        }
         if(!muted){
             music.play()
         }
@@ -183,9 +189,7 @@ let endPoint = createSprite(0, 0, 0, 0);
 
 
 function setSprites(){
-    if(touchscreen){
-        mobileButtons.style.display = "grid"
-    }
+
     music.src = "audio/music" + level + ".mp3"
     if(!muted){
         music.play();
