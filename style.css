@@ -135,7 +135,7 @@ button{
 }
 
 #mobileButtons{
-    display: none;
+    display: grid;
     grid-column: 1/3;
     grid-row:3/4;
     position: absolute;
@@ -147,7 +147,6 @@ button{
     justify-items: center;
     background-color: transparent;
     margin: 0;
-    align-self: last baseline;
 }
 #mobileButtons button{
     display: block;
@@ -156,7 +155,6 @@ button{
     padding: 0;
     margin: 0;
     background-color: transparent;
-    align-self: first baseline;
     gap: 0;
     border: none;
     outline: none;
@@ -171,15 +169,4 @@ button{
 button#jumpButton{
     width: 33%;
     grid-column: 1/4;
-    grid-row:1/4;
-    align-self: last baseline;
-}
-#lowerButtons{
-    grid-column: 1/4;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-}
-#lowerButtons button{
-    display: inline;
-
 }
