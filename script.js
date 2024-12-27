@@ -14,6 +14,7 @@ let enemyChance = 1;
 let level = 1;
 let muted = false;
 let startScreen = true;
+let machineGuns = true;
 
 //Cashed elements
 const canvas = document.getElementById("game_canvas");
@@ -43,9 +44,69 @@ sounds.push(win);
 
 let touchscreen = false;
 const mobileButtons = document.getElementById("mobileButtons")
+const jumpButton = document.getElementById("jumpButton");
+const leftButton = document.getElementById("leftButton");
+const shootButton = document.getElementById("shootButton");
+const rightButton = document.getElementById("rightButton");
+
+const buttons = new Map([
+    ["jumpButton", "ArrowUp"],
+    ["leftButton", "ArrowLeft"],
+    ["shootButton", "ArrowDown"],
+    ["rightButton", "ArrowRight"]
+])
 
 if(window.matchMedia("(pointer:coarse)").matches){
     touchscreen = true;
+}
+
+document.addEventListener("mousedown", event => {
+    setButton(event.target.parentElement, true)
+})
+document.addEventListener("mouseup", event => {
+    setButton(event.target.parentElement, false)
+    console.log(event.target)
+})
+document.addEventListener("touchstart", event => {
+    setButton(event.target.parentElement, true)
+})
+document.addEventListener("touchend", event => {
+    setButton(event.target.parentElement, false)
+})
+function setButton(button, value){
+    for(let i=0; i<buttons.length; i++){
+        if(button.id === buttons[i][0]){
+            keys[buttons[i][1]] = value
+        }
+    }
+}
+function setButton(button, value){
+    keys[buttons.get(button.id)] = value;
+    if(button.id === "jumpButton"){
+        if(value === true && !player.keyWasPressed.ArrowUp){
+            player.keyWasPressed.ArrowUp = true;
+            if(player.jumpCount < 2){
+                player.y -= 2;
+                player.velocityY = -1 * jumpForce;
+                player.jumpCount++;
+                playAudio(jumpSound);
+            }
+        }
+        else if(value === false){
+            player.keyWasPressed.ArrowUp = false;
+        }
+    }
+    if(button.id === "shootButton"){
+        if(value === true && !player.keyWasPressed.ArrowDown){
+            if(!machineGuns){
+                player.keyWasPressed.ArrowDown = true;
+            }
+            shootBullet(player);
+        }
+        else if(value === false){
+            player.keyWasPressed.ArrowDown = false;
+        }
+    }
 }
 
 //Menu buttons
@@ -326,9 +387,15 @@ window.addEventListener("keydown", (event) => {
         }
     }
     if(event.key === "ArrowDown" && !player.keyWasPressed.ArrowDown){
+        if(!machineGuns){
+            player.keyWasPressed.ArrowDown = true;
+        }
         shootBullet(player);
     }
     if(event.key === "s" && !sonic.keyWasPressed.s){
+        if(!machineGuns){
+            sonic.keyWasPressed.s = true;
+        }
         shootBullet(sonic);
     }
 
@@ -341,6 +408,12 @@ window.addEventListener("keyup", function(event){
     }
     if(event.key === "w"){
         sonic.keyWasPressed.w = false;
+    }
+    if(event.key === "ArrowDown"){
+        player.keyWasPressed.ArrowDown = false;
+    }
+    if(event.key === "s"){
+        sonic.keyWasPressed.s = false;
     }
     keys[event.key] = false;
 })
