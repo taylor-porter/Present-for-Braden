@@ -73,6 +73,7 @@ document.addEventListener("mouseup", event => {
     console.log(event.target)
 })
 document.addEventListener("touchstart", event => {
+    event.preventDefault();
     setButton(event.target.parentElement, true)
 })
 document.addEventListener("touchend", event => {
