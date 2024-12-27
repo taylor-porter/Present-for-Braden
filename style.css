@@ -5,6 +5,9 @@ html, body{
     color: white;
     font-family: "Pixelify Sans", 'Courier New', Courier, monospace;
 }
+*{
+    position: relative;
+}
 .container{
     display: grid;
     grid-template-columns: repeat(6, 1fr);
