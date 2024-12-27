@@ -122,12 +122,10 @@ if(!startScreen){
         overlay.classList.remove("paused");
         if(touchscreen){
             mobileButtons.style.display = "grid"
+            goFullscreen();
         }
         if(!muted){
             music.play()
-        }
-        if(touchscreen){
-            goFullscreen();
         }
         
     }
@@ -138,15 +136,12 @@ else{
         gameLoop()
         overlay.classList.remove("paused");
         if(touchscreen){
-            mobileButtons.style.display = "grid"
+            mobileButtons.style.display = "grid";
+            goFullscreen();
         }
         if(!muted){
             music.play()
         }
-        if(touchscreen){
-            goFullscreen();
-        }
-        
     })
 }
 
