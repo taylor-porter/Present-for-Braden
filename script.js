@@ -1,21 +1,3 @@
-//game controls
-let maxSpeed = 10;
-let acceleration = 1.3;
-let friction = 1;
-let jumpForce = 25;
-let gravity = 1.7;
-let cameraSpeed = 0.2; //0.3
-let fallHeight = 700;
-let bulletSpeed = 20;
-let cameraBorder = 150;
-let zoom = 1.3; //1.3
-let multiplayer = false;
-let enemyChance = 1;
-let level = 1;
-let muted = false;
-let startScreen = true;
-let machineGuns = true;
-
 //Cashed elements
 const canvas = document.getElementById("game_canvas");
 const ctx = canvas.getContext("2d");
@@ -37,6 +19,8 @@ const shootSound = "audio/shoot.mp3"
 const ouch = "audio/ouch.mp3"
 const win = new Audio("audio/win.mp3")
 const music = new Audio("audio/music2.mp3")
+music.loop = true;
+
 
 let sounds = []
 sounds.push(music);
@@ -80,13 +64,6 @@ document.addEventListener("touchend", event => {
     setButton(event.target.parentElement, false)
 })
 function setButton(button, value){
-    for(let i=0; i<buttons.length; i++){
-        if(button.id === buttons[i][0]){
-            keys[buttons[i][1]] = value
-        }
-    }
-}
-function setButton(button, value){
     keys[buttons.get(button.id)] = value;
     if(button.id === "jumpButton"){
         if(value === true && !player.keyWasPressed.ArrowUp){
@@ -118,7 +95,8 @@ function setButton(button, value){
 //Menu buttons
 if(!startScreen){
     window.onload = function(){
-        gameLoop()
+        setSprites();
+        gameLoop();
         overlay.classList.remove("paused");
         if(touchscreen){
             mobileButtons.style.display = "grid"
@@ -133,7 +111,8 @@ if(!startScreen){
 }
 else{
     startStop.addEventListener("click", function(){
-        gameLoop()
+        setSprites();
+        gameLoop();
         overlay.classList.remove("paused");
         if(touchscreen){
             mobileButtons.style.display = "grid";
@@ -213,6 +192,7 @@ function createSprite(posX, posY, width, height){
         "bullet" : {
             "firedFrom" : ""
         },
+        "enemy" : ""
     };
 }
 
@@ -263,9 +243,12 @@ function setSprites(){
     if(!muted){
         music.play();
     }
+    playerLives.style.display = "block";
+    if(multiplayer){
+        sonicLives.style.display = "block"
+    }
     music.currentTime = 0;
-    gameState.style.display = "none";
-    restart.style.display = "none";
+    gameStateMenu.style.display = "none";
 
     //Skies
     let skyData = levels[level].sky;
@@ -312,13 +295,12 @@ function setSprites(){
     
     createSpriteGroup(grounds, "images/ground.png");
 
+    //Enemies
     enemies = []
     let enemyData = levels[level].enemies
 
     for(let i=0; i<enemyData.length; i++){
-        let enemy = createSprite(enemyData[i][0], enemyData[i][1], enemyData[i][2], enemyData[i][3])
-        setEnemy(enemy);
-        enemies.push(enemy);
+        createEnemy(enemyData[i][0], enemyData[i][1], enemyData[i][2], enemyData[i][3], enemyData[i][4])
     }
     
     //bullets
@@ -330,8 +312,6 @@ function setSprites(){
     endPoint.animation.src = "images/santas-sleigh.png";
     sprites.push(endPoint);
 }
-
-setSprites();
 
 function createGround(x, y, width, height){
     let w = width;
@@ -345,31 +325,39 @@ function createGround(x, y, width, height){
     grounds.push(createSprite(x, y, w, h));
 }
 
+const enemySkins = {
+    "goomba" : "images/enemy.webp",
+    "robot" : "images/enemy2.png"
+}
+
+const enemyTypes = ["goomba", "robot"]
+
 //enemies
-function createEnemy(x, y, width, height){
-    let w = width;
-    let h = height;
-    if(w === undefined){
-        w = 50;
+function createEnemy(x, y, width = 50, height = 50, enemyType = "goomba"){
+    let newEnemy = createSprite(x, y, width, height);
+
+    enemies.push(newEnemy);
+    newEnemy.takesDamage = true;
+    newEnemy.hasGravity = true;
+    // if(enemyType === "goomba"){
+        newEnemy.velocityX  = enemySpeed;
+    // }
+    sprites.push(newEnemy);
+    if(newEnemy.width <= 50){
+        newEnemy.lives = 1;
     }
-    if(h === undefined){
-        h = 50;
+    else{
+        newEnemy.lives = Math.floor(newEnemy.width / 50) * 2;
     }
-    enemies.push(createSprite(x, y, w, h));
+    newEnemy.animation.src = enemySkins[enemyType];
+    newEnemy.enemy = {
+        "type" : enemyType
+    }
+    return newEnemy;
 }
 
 function setEnemy(sprite){
-        sprite.takesDamage = true;
-        sprite.hasGravity = true;
-        sprite.velocityX  = -3;
-        sprites.push(sprite);
-        if(sprite.width <= 50){
-            sprite.lives = 1;
-        }
-        else{
-            sprite.lives = Math.floor(sprite.width / 50) * 2;
-        }
-        sprite.animation.src = "images/enemy.webp";
+        
 }
 
 let keys = {};
@@ -451,6 +439,7 @@ function lerp(start, end, t){
     return start + (end - start) * t;
 }
 
+//used if you want the camera to only be pushed when the player goes beyond a certain threshold
 function pushCamera(sprite){ //if the player is past the camera border, push the camera
     //left/right
     if(sprite.x + sprite.width > targetX + (camera.width - cameraBorder) || sprite.x < targetX + cameraBorder){
@@ -469,7 +458,10 @@ function pushCamera(sprite){ //if the player is past the camera border, push the
 
 if(multiplayer){
     let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
-    let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)    
+    let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)  
+
+    let targetX2 = sonic.x - camera2.width / 2;
+    let targetY2 = sonic.y - camera2.height / 2
 }
 else{
     let targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
@@ -528,309 +520,341 @@ function goFullscreen() {
     }
   }
 
-window.addEventListener("resize", function(){
-    resizeCanvas();
-    drawSprites();
-})
+// window.addEventListener("resize", function(){
+//     resizeCanvas();
+//     drawSprites();
+// })
 
-//Check to see if the images are loaded
-let loadedImages = 0;
+// //Check to see if the images are loaded
+// let loadedImages = 0;
 
-function checkImagesLoaded() {
-    loadedImages++;
-    if (loadedImages === 2) {
-        drawSprites();
-    }
-}
+// function checkImagesLoaded() {
+//     loadedImages++;
+//     if (loadedImages === 2) {
+//         drawSprites();
+//     }
+// }
 
-player.animation.onload = checkImagesLoaded;
-grounds[0].animation.onload = checkImagesLoaded;
+// player.animation.onload = checkImagesLoaded;
+// grounds[0].animation.onload = checkImagesLoaded;
+
+
+//FPS limiter
+let fpsInterval = 1000 / fps;
+let then = Date.now();
+let startTime = then;
+let frameCount = 0;
 
 function gameLoop(){
-    if(!multiplayer){
-        sonic.deleted = true;
-    }
+    requestAnimationFrame(gameLoop)
+    let now = Date.now();
+    elapsed = now - then;
+    if(elapsed >= fpsInterval){
+        then = now - (elapsed % fpsInterval)
+    
+        if(!multiplayer){
+            sonic.deleted = true;
+        }
 
-    //Move the camera to follow the player
-    updateTransition();
+        //Move the camera to follow the player
+        updateTransition();
 
-    //Decide whether to use split screen
-    if((isTouchingGround(player) && isTouchingGround(sonic)) || isTouching(player, sonic)){ //Only disable splitScreen if players are touching ground to prevent screen from jittering when player jumps
-        if(Math.abs(player.x - sonic.x) < camera.width - 100 && Math.abs(player.y - sonic.y) < camera.height -100){ //If the distance between players is closer than screen
-            if(splitScreen){
+        //Decide whether to use split screen
+        if((isTouchingGround(player) && isTouchingGround(sonic)) || isTouching(player, sonic)){ //Only disable splitScreen if players are touching ground to prevent screen from jittering when player jumps
+            if(Math.abs(player.x - sonic.x) < camera.width - 100 && Math.abs(player.y - sonic.y) < camera.height -100){ //If the distance between players is closer than screen
+                if(splitScreen){
+                    splitScreen = false;
+                    startTransition();
+                }
+            }
+            else if((player.deleted || sonic.deleted) && splitScreen){
                 splitScreen = false;
                 startTransition();
             }
-        }
-        else if((player.deleted || sonic.deleted) && splitScreen){
-            splitScreen = false;
-            startTransition();
-        }
-        else if(!splitScreen && !(player.deleted || sonic.deleted)){
-            splitScreen = true;
-            startTransition();
-            if(player.x < sonic.x){
-                playerSide = "left";
-            }
-            else{
-                playerSide = "right";
-            }
-        }
-    }
-
-    //Update the camera
-    if(player.deleted && sonic.deleted){ //Game over logic
-        gameState.style.display = "block";
-        restart.style.display = "block";
-        gameState.innerText = "Game Over!"
-        restart.innerText = "Restart"
-    }
-    else if(sonic.deleted){
-        targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
-        targetY = player.y - camera.height / 2 ; // Center the camera on the player (vertical)    
-
-        camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
-        camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
-
-        canvas2.classList.remove("visible");
-        canvas.style.gridColumn = "1/7"
-    }
-    else if(player.deleted){
-        targetX = sonic.x - camera.width / 2;  // Center the camera on the player (horizontal)
-        targetY = sonic.y - camera.height / 2 ; // Center the camera on the player (vertical)    
-
-        camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
-        camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
-
-        canvas2.classList.remove("visible");
-        canvas.style.gridColumn = "1/7"
-    }
-    else if(!splitScreen){
-        // followSprite(player);
-        // followSprite(sonic);
-
-        targetY = (player.y + sonic.y) / 2 - camera.height / 2 
-        targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
-
-        camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
-        camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
-
-        canvas2.classList.remove("visible");
-        canvas.style.gridColumn = "1/7"
-        
-    }
-    else{
-        canvas2.classList.add("visible");
-        if(playerSide === "left"){
-            targetX = player.x - camera.width / 2;
-            targetY = player.y - camera.height / 2;
-    
-            let targetX2 = sonic.x - camera2.width / 2;
-            let targetY2 = sonic.y - camera2.height / 2 //- 30;
-            
-            camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
-            camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
-
-            camera2.x = lerp(camera2.x, targetX2, cameraSpeed * transitionProgress);
-            camera2.y = lerp(camera2.y, targetY2, cameraSpeed * transitionProgress);
-        }
-        else{
-            targetX = sonic.x - camera2.width / 2;
-            targetY = sonic.y - camera2.height / 2 //- 30;
-            
-            let targetX2 = player.x - camera.width / 2;
-            let targetY2 = player.y - camera.height / 2;
-
-            camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
-            camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
-            
-            camera2.x = lerp(camera2.x, targetX2, cameraSpeed * transitionProgress);
-            camera2.y = lerp(camera2.y, targetY2, cameraSpeed * transitionProgress);
-        }
-        canvas.style.gridColumn = "1/4"
-    }
-
-    sky.x = camera.x;
-    sky.y = camera.y;
-
-    sky2.x = camera2.x;
-    sky2.y = camera2.y;
-
-    giveMovement(player, "ArrowLeft", "ArrowRight", "ArrowDown"); 
-    giveMovement(sonic, "a", "d", "s");
-
-    //change sprite animations when moving and/or facing left
-    if (player.facing === "left"){
-        player.spriteSheet.y = 1;
-        if(Math.abs(player.velocityX) > 1){
-            animateSprite(player, 0, 2);
-        }
-        else{
-
-        }
-    }
-    else{
-        player.spriteSheet.y = 0;
-        if(Math.abs(player.velocityX) > 1){
-            animateSprite(player, 0, 2);
-        }
-        else{
-
-        }
-    }
-
-    if (sonic.facing === "left"){
-        sonic.animation.src = "images/sonic-left.png"
-    }
-    else{
-        sonic.animation.src = "images/sonic.png"
-    }
-    
-    //remove deleted sprites
-    sprites = sprites.filter(sprite => !sprite.deleted);
-    bullets = bullets.filter(bullet => !bullet.deleted);
-
-    //If a bullet touches a sprite, destroy sprite and bullet
-    for(let i=0; i<bullets.length; i++){
-        if(isInBounds(bullets[i])){
-            for(let j=0; j<sprites.length; j++){
-                if(isTouching(bullets[i], sprites[j]) && sprites[j].takesDamage){
-                    if(bullets[i].bullet.firedFrom !== sprites[j]){
-                        sprites[j].lives -= 1;
-                        bullets[i].deleted = true;
-                        if(sprites[j] === player || sprites[j] === sonic){
-                            playAudio(ouch);
-                        }
-                    }  
+            else if(!splitScreen && !(player.deleted || sonic.deleted)){
+                splitScreen = true;
+                startTransition();
+                if(player.x < sonic.x){
+                    playerSide = "left";
+                }
+                else{
+                    playerSide = "right";
                 }
             }
         }
-    }
-    
 
-    //Lives counter
-    if(player.lives >= 0){
-        playerLives.innerText = "Lives: " + player.lives;
-    }
-    if(sonic.lives >= 0){
-        sonicLives.innerText = "lives: " + sonic.lives;
-    }
-    if(!multiplayer){
-        sonicLives.style.display = "none";
-    }
+        //Update the camera
+        if(player.deleted && sonic.deleted){ //Game over logic
+            gameStateMenu.style.display = "block";
+            gameState.innerText = "Game Over!"
+            restart.innerText = "Restart"
+        }
+        else if(sonic.deleted){
+            targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
+            targetY = player.y - camera.height / 2 ; // Center the camera on the player (vertical)    
 
-    //gravity
-    for(let i=0; i<sprites.length; i++){
-        if(sprites[i].hasGravity){
-            giveGravity(sprites[i]);
-        }
-    }
-    
-    //delete sprites if they take damage
-    for(let i=0; i<sprites.length; i++){
-        if(sprites[i].lives <= 0){
-            sprites[i].deleted = true;
-            sprites[i].lives = 0;
-        }
-    }
+            camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+            camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
 
-    //Randomly place enemies
-    if(enemyChance >= 1){
-        for(let i=0; i<Math.floor(enemyChance); i++){
-            let size = getRandomNumber(50, 150)
-            let newEnemy = createSprite(getRandomNumber(0,3000), getRandomNumber(-3000,200), size, size);
-            newEnemy.visible = false;
-            setEnemy(newEnemy);
-            if(isNextToGround(newEnemy)){
-                newEnemy.visible = true;
-                enemies.push(newEnemy)
-            }    
-            else{
-                newEnemy.deleted = true;
-            }
+            canvas2.classList.remove("visible");
+            canvas.style.gridColumn = "1/7"
         }
-    }
-    else{
-        if(getRandomNumber(1, 100) <= enemyChance * 100){
-            let size = getRandomNumber(50, 150)
-            let newEnemy = createSprite(getRandomNumber(0,3000), getRandomNumber(-3000,200), size, size);
-            newEnemy.visible = false;
-            setEnemy(newEnemy);
-            if(isNextToGround(newEnemy)){
-                newEnemy.visible = true;
-                enemies.push(newEnemy)
-            }    
-            else{
-                newEnemy.deleted = true;
-            }
-        }
-    } 
+        else if(player.deleted){
+            targetX = sonic.x - camera.width / 2;  // Center the camera on the player (horizontal)
+            targetY = sonic.y - camera.height / 2 ; // Center the camera on the player (vertical)    
 
-    //loop through enemies
-    for(let i=0; i<enemies.length; i++){
+            camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+            camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
+
+            canvas2.classList.remove("visible");
+            canvas.style.gridColumn = "1/7"
+        }
+        else if(!splitScreen){
+            // followSprite(player);
+            // followSprite(sonic);
+
+            targetY = (player.y + sonic.y) / 2 - camera.height / 2 
+            targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
+
+            camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+            camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
+
+            canvas2.classList.remove("visible");
+            canvas.style.gridColumn = "1/7"
+            
+        }
+        else{
+            canvas2.classList.add("visible");
+            if(playerSide === "left"){
+                targetX = player.x - camera.width / 2;
+                targetY = player.y - camera.height / 2;
         
-        if(isTouching(enemies[i], player) && !enemies[i].deleted){
-            mutualCollide(player, enemies[i], 1);
-            if(enemies[i].bouncedOn){
-                enemies[i].deleted = true;
-            }
-            else{
-                player.lives --;
-                enemies[i].deleted = true;
-                playAudio(ouch)
-            }
-        }
-
-        if(isTouching(enemies[i], sonic)){
-            mutualCollide(sonic, enemies[i], 1);
-            if(enemies[i].bouncedOn){
-                enemies[i].deleted = true;
+                targetX2 = sonic.x - camera2.width / 2;
+                targetY2 = sonic.y - camera2.height / 2 //- 30;
                 
+                camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+                camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
+
+                camera2.x = lerp(camera2.x, targetX2, cameraSpeed * transitionProgress);
+                camera2.y = lerp(camera2.y, targetY2, cameraSpeed * transitionProgress);
             }
             else{
-                sonic.lives --;
-                enemies[i].deleted = true;
-                playAudio(ouch)
+                targetX = sonic.x - camera2.width / 2;
+                targetY = sonic.y - camera2.height / 2 //- 30;
+                
+                targetX2 = player.x - camera.width / 2;
+                targetY2 = player.y - camera.height / 2;
+
+                camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
+                camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
+                
+                camera2.x = lerp(camera2.x, targetX2, cameraSpeed * transitionProgress);
+                camera2.y = lerp(camera2.y, targetY2, cameraSpeed * transitionProgress);
+            }
+            canvas.style.gridColumn = "1/4"
+        }
+
+        sky.x = camera.x;
+        sky.y = camera.y;
+
+        sky2.x = camera2.x;
+        sky2.y = camera2.y;
+
+        giveMovement(player, "ArrowLeft", "ArrowRight", "ArrowDown"); 
+        giveMovement(sonic, "a", "d", "s");
+
+        //change sprite animations when moving and/or facing left
+        if (player.facing === "left"){
+            player.spriteSheet.y = 1;
+            if(Math.abs(player.velocityX) > 1){
+                animateSprite(player, 0, 2);
+            }
+            else{
 
             }
         }
-        if(!isNextToGround(enemies[i])){
-            enemies[i].velocityX = enemies[i].velocityX * -1;
+        else{
+            player.spriteSheet.y = 0;
+            if(Math.abs(player.velocityX) > 1){
+                animateSprite(player, 0, 2);
+            }
+            else{
+
+            }
         }
-    }
 
-
-    
-    mutualCollide(sonic, player, 2);
-
-    //if player gets to end of level
-    if(isTouching(player, endPoint) || isTouching(sonic, endPoint)){
-        gameState.style.display = "block";
-        restart.style.display = "block";
-        gameState.innerText = "You win! Merry Christmas!";
-        restart.innerText = "Next Level";
-        music.pause();
-        if(!muted){
-            win.play();
+        if (sonic.facing === "left"){
+            sonic.animation.src = "images/sonic-left.png"
+        }
+        else{
+            sonic.animation.src = "images/sonic.png"
         }
         
-    }
+        //remove deleted sprites
+        sprites = sprites.filter(sprite => !sprite.deleted);
+        bullets = bullets.filter(bullet => !bullet.deleted);
 
-    createVelocity();
-    drawSprites();
-    requestAnimationFrame(gameLoop);
-    // setTimeout(gameLoop, 16)
+        //If a bullet touches a sprite, destroy sprite and bullet
+        for(let i=0; i<bullets.length; i++){
+            if(isInBounds(bullets[i])){
+                for(let j=0; j<sprites.length; j++){
+                    if(isTouching(bullets[i], sprites[j]) && sprites[j].takesDamage){
+                        if(bullets[i].bullet.firedFrom !== sprites[j]){
+                            sprites[j].lives -= 1;
+                            bullets[i].deleted = true;
+                            if(sprites[j] === player || sprites[j] === sonic){
+                                playAudio(ouch);
+                            }
+                        }  
+                    }
+                }
+            }
+            else{
+                bullets[i].deleted = true;
+            }
+        }
+        
 
-    //if the player falls off the map
-    if(player.y > fallHeight){
-        player.x = 200;
-        player.y = 100;
-    }
-    if(sonic.y > fallHeight){
-        sonic.x = 200;
-        sonic.y = 100;
-    }
+        //Lives counter
+        if(player.lives >= 0){
+            playerLives.innerText = "Lives: " + player.lives;
+        }
+        if(sonic.lives >= 0){
+            sonicLives.innerText = "lives: " + sonic.lives;
+        }
 
+        //gravity
+        for(let i=0; i<sprites.length; i++){
+            if(sprites[i].hasGravity){
+                giveGravity(sprites[i]);
+            }
+        }
+        
+        //delete sprites if they take damage
+        for(let i=0; i<sprites.length; i++){
+            if(sprites[i].lives <= 0){
+                sprites[i].deleted = true;
+                sprites[i].lives = 0;
+            }
+        }
+        //Randomly place enemies
+        if(enemyChance >= 1){
+            for(let i=0; i<Math.floor(enemyChance); i++){
+                let size = getRandomNumber(50, 150);
+                let type = enemyTypes[getRandomNumber(0, enemyTypes.length - 1)]
+                let newEnemy = createEnemy(getRandomNumber(0,3000), getRandomNumber(-3000,200), size, size, type);
+                newEnemy.visible = false;
+                if(isNextToGround(newEnemy, 0, false)){
+                    newEnemy.visible = true;
+                    console.log("enemy created")
+                }    
+                else{
+                    newEnemy.deleted = true;
+                }
+            }
+        }
+        else{
+            if(getRandomNumber(1, 100) <= enemyChance * 100){
+                let size = getRandomNumber(50, 150);
+                let type = enemyTypes[getRandomNumber(0, enemyTypes.length - 1)]
+                let newEnemy = createEnemy(getRandomNumber(0,3000), getRandomNumber(-3000,200), size, size, type);
+                newEnemy.visible = false;
+                if(isNextToGround(newEnemy, 0, false)){
+                    newEnemy.visible = true;
+                    console.log("enemy created")
+                }    
+                else{
+                    newEnemy.deleted = true;
+                }
+            }
+        } 
+
+        //loop through enemies
+        for(let i=0; i<enemies.length; i++){
+            if(isInBounds(enemies[i])){
+                if(isTouching(enemies[i], player) && !enemies[i].deleted){
+                    mutualCollide(player, enemies[i], 1);
+                    if(enemies[i].bouncedOn){
+                        enemies[i].deleted = true;
+                    }
+                    else if(enemies[i].enemy.type === "goomba"){
+                        player.lives --;
+                            enemies[i].deleted = true;
+                            playAudio(ouch)
+                    }
+                }
+    
+                else if(isTouching(enemies[i], sonic)){
+                    mutualCollide(sonic, enemies[i], 1);
+                    if(enemies[i].bouncedOn){
+                        enemies[i].deleted = true;
+                        
+                    }
+                    else if(enemies[i].enemy.type === "goomba"){
+                        sonic.lives --;
+                        enemies[i].deleted = true;
+                        playAudio(ouch)
+    
+                    }
+                }
+                if(!isTouching(enemies[i], player && !isTouching(enemies[i], sonic))){
+                    if(Math.abs(enemies[i].velocityX !== 3)){
+                        enemies[i].velocityX = -3;
+                    }
+                }
+    
+                if(enemies[i].enemy.type === "robot" && isInBounds(enemies[i])){
+                    if(getRandomNumber(1, robotShootRate) === 1){
+                        if(player.x < enemies[i].x){
+                            enemies[i].facing = "left"
+                        }
+                        else{
+                            enemies[i].facing = "right"
+                        }
+                        shootBullet(enemies[i])
+                    }
+                }
+                if(!isNextToGround(enemies[i])){
+                    enemies[i].velocityX = enemies[i].velocityX * -1;
+                }
+            }
+            else{
+                enemies[i].velocityX = 0;
+            }
+            
+        }
+
+
+        
+        mutualCollide(sonic, player, 2);
+
+        //if player gets to end of level
+        if(isTouching(player, endPoint) || isTouching(sonic, endPoint)){
+            gameStateMenu.style.display = "block";
+            gameState.innerText = "You win! Merry Christmas!";
+            restart.innerText = "Next Level";
+            music.pause();
+            if(!muted){
+                win.play();
+            }
+            
+        }
+
+        createVelocity();
+        drawSprites();
+        //requestAnimationFrame(gameLoop);
+        // setTimeout(gameLoop, 16)
+
+        //if the player falls off the map
+        if(player.y > fallHeight){
+            player.x = 200;
+            player.y = 100;
+        }
+        if(sonic.y > fallHeight){
+            sonic.x = 200;
+            sonic.y = 100;
+        }
+    }
 }
 
 
@@ -889,12 +913,7 @@ function shootBullet(sprite){
         else{
             newBullet.velocityX = -1 * bulletSpeed;
         }
-        if(sprite === player){
-            newBullet.bullet.firedFrom = player
-        }
-        else if(sprite === sonic){
-            newBullet.bullet.firedFrom = sonic
-        }
+            newBullet.bullet.firedFrom = sprite
         sprites.push(newBullet)
         bullets.push(newBullet)
         playAudio(shootSound)
@@ -926,28 +945,30 @@ function isNextToOG(sprite1, sprite2,) {
    }
 }
 
-function isNextTo(sprite1, sprite2, tolerance) {
-    let t = tolerance
-    if(tolerance === undefined){
-        t = 1;
+function isNextTo(sprite1, sprite2, toleranceX = 0, useMidPoint = true, toleranceY = 1) {
+    if(useMidPoint){
+        if (
+            sprite1.x + sprite1.width / 2 < sprite2.x + sprite2.width - toleranceX &&
+            sprite1.x + sprite1.width / 2 > sprite2.x + toleranceX &&
+            Math.abs(sprite1.y + sprite1.height - sprite2.y) <= toleranceY &&
+            sprite1.y + sprite1.height <= sprite2.y
+        ) {return true;}
+        else {return false;}
     }
-    if (
-       sprite1.x + sprite1.width / 2 < sprite2.x + sprite2.width &&
-       sprite1.x + sprite1.width / 2 > sprite2.x &&
-       Math.abs(sprite1.y + sprite1.height - sprite2.y) <= t &&
-       sprite1.y + sprite1.height <= sprite2.y
-   ) {return true;}
-   else {return false;
-   }
+    else{
+        if (
+            sprite1.x + sprite1.width < sprite2.x + sprite2.width - toleranceX &&
+            sprite1.x > sprite2.x + toleranceX &&
+            Math.abs(sprite1.y + sprite1.height - sprite2.y) <= toleranceY &&
+            sprite1.y + sprite1.height <= sprite2.y
+        ) {return true;}
+        else {return false;}
+    }
 }
 
-function isNextToGround(sprite, tolerance){
-    let t = tolerance
-    if(tolerance === undefined){
-        t = 1;
-    }
+function isNextToGround(sprite, toleranceX = 0, useMidPoint = true, toleranceY = 1){
     for(let i=0; i < grounds.length; i++){
-        if(isNextTo(sprite, grounds[i], t)){
+        if(isNextTo(sprite, grounds[i], toleranceX, useMidPoint, toleranceY)){
             return true;
         }
     }
@@ -1071,12 +1092,25 @@ function mutualCollide(sprite1, sprite2, bounce){
 function isInBounds(sprite){ //if the player is past the camera border, push the camera
     //left/right
     if(!splitScreen){
-        if(sprite.x > targetX + camera.width || sprite.x + sprite.width < targetX){
+        if(sprite.x > camera.x + camera.width || sprite.x + sprite.width < camera.x){
             return false;
         }
         //up/down
-        if(sprite.y > targetY + camera.height || sprite.y + sprite.height < targetY){
+        if(sprite.y > camera.y + camera.height || sprite.y + sprite.height < camera.y){
             return false;
+        }
+    }
+    else{
+        if(sprite.x > camera.x + camera.width || sprite.x + sprite.width < camera.x){
+            if(sprite.x > camera2.x + camera2.width || sprite.x + sprite.width < camera2.x){
+                return false;
+            }
+        }
+        //up/down
+        if(sprite.y > camera.y + camera.height || sprite.y + sprite.height < camera.y){
+            if(sprite.y > camera2.y + camera2.height || sprite.y + sprite.height < camera2.y){
+                return false;
+            }
         }
     }
     return true;
