@@ -5,11 +5,16 @@ function drawSprites() {
     // if(logCounter < 10){
     //     console.time("loadTime")
     // }
-    
+    ctx.strokeStyle = "red"; // Set border color to red
+    ctx.lineWidth = 2;       // Set border thickness
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for(let i=0; i < sprites.length; i++){
         totalSprites ++
         if(sprites[i] !== sky2 && sprites[i].visible && isInBounds(sprites[i])){
+            if(sprites[i].selected){
+
+                ctx.strokeRect(sprites[i].x - camera.x, sprites[i].y - camera.y, sprites[i].width, sprites[i].height);
+            }
             if(!sprites[i].spriteSheet.used){
                 spritesLoaded ++;
                 ctx.drawImage(
@@ -69,8 +74,8 @@ function drawSprites() {
         }
     }
     //logCounter ++;
-    console.log("Sprites loaded: " + spritesLoaded)
-    console.log("Total Sprites: " + totalSprites)
+    // console.log("Sprites loaded: " + spritesLoaded)
+    // console.log("Total Sprites: " + totalSprites)
     // if(logCounter < 10){
     //     console.timeEnd("loadTime")
     // }

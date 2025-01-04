@@ -17,7 +17,8 @@ let machineGuns = true;
 let layout = false;
 let robotShootRate = 75;
 let enemySpeed = -3;
-let fps = 40;
+let fps = 450;
+let gridSize = 400;
 if(layout){
     zoom = 0.3;
     startScreen = false;
