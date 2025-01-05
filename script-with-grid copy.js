@@ -33,6 +33,13 @@ const leftButton = document.getElementById("leftButton");
 const shootButton = document.getElementById("shootButton");
 const rightButton = document.getElementById("rightButton");
 
+const imgCache = {
+    "goomba" : new Image(),
+    "robot" : new Image(),
+}
+imgCache.goomba.src = "images/enemy.webp";
+imgCache.robot.src = "images/enemy2.png"
+
 const buttons = new Map([
     ["jumpButton", "ArrowUp"],
     ["leftButton", "ArrowLeft"],
@@ -187,6 +194,8 @@ function createSprite(posX, posY, width, height, type=""){
         "gridEndY" : 0,
         "type" : type,
         "selected" : false,
+        "gridCells" : [],
+        "closeSprites" : new Set(),
         "spriteSheet" : {
             "used" : false,
             "x" : 0, 
@@ -329,36 +338,47 @@ function setSprites(){
 
 function updateSpriteGrid(sprite){
     let startX = Math.floor(sprite.x / gridSize);
-        let startY = Math.floor(sprite.y / gridSize);
-        let endX = Math.floor((sprite.x + sprite.width) / gridSize);
-        let endY = Math.floor((sprite.y + sprite.height) / gridSize);
+    let startY = Math.floor(sprite.y / gridSize);
+    let endX = Math.floor((sprite.x + sprite.width) / gridSize);
+    let endY = Math.floor((sprite.y + sprite.height) / gridSize);
 
-        if(sprite.gridStartX != startX || sprite.gridStartY != startY || sprite.gridEndX != endX || sprite.gridEndY != endY){
-            for(let x=sprite.gridStartX; x<=sprite.gridEndX; x++){
-                for(let y=sprite.gridStartY; y<=sprite.gridEndY; y++){
-                    let key = `${x},${y}`
+    if(sprite.gridStartX != startX || sprite.gridStartY != startY || sprite.gridEndX != endX || sprite.gridEndY != endY){
+        for(let x=sprite.gridStartX; x<=sprite.gridEndX; x++){
+            for(let y=sprite.gridStartY; y<=sprite.gridEndY; y++){
+                if(Math.abs(sprite.x - x * gridSize) > gridSize){
+                    let key = x + "," + y
                     if(grid[key]){
-                        grid[key] = grid[key].filter(s => s !== sprite); //filter out the sprite from the grids
+                        grid[key].delete(sprite) //filter out the sprite from the grids
+                        sprite.gridCells = sprite.gridCells.filter(cell => cell !== grid[key])
+                        if (grid[key].size === 0) delete grid[key];
+                        for(const item of grid[key]){
+                            sprite.closeSprites.delete(item);
+                        }
                     }
                 }
+                
             }
+        }
 
-            sprite.gridStartX = startX;
-            sprite.gridStartY = startY;
-            sprite.gridEndX = endX;
-            sprite.gridEndY = endY;
-    
-            for(let x=startX; x<=endX; x++){
-                for(let y=startY; y<=endY; y++){
-                    let key = `${x},${y}`
-                    if(!grid[key]){
-                        grid[key] = [];
-                    }
-                    grid[key].push(sprite)
+        for(let x=startX; x<=endX; x++){
+            for(let y=startY; y<=endY; y++){
+                let key = x + "," + y
+                if(!grid[key]){
+                    grid[key] = new Set;
+                }
+                grid[key].add(sprite)
+                sprite.gridCells.push(grid[key]);
+                for(const item of grid[key]){
+                    sprite.closeSprites.add(item);
                 }
             }
         }
-       
+    }
+    sprite.gridStartX = startX;
+    sprite.gridStartY = startY;
+    sprite.gridEndX = endX;
+    sprite.gridEndY = endY;
+    
         
 }
 
@@ -366,9 +386,8 @@ function highlightCloseSprites(sprite){
     for(let i=0; i<sprites.length; i++){
         sprites[i].selected = false;
     }
-    let highlights = getCloseSprites(sprite);
-    for(let i=0; i<highlights.length; i++){
-        highlights[i].selected = true;
+    for(const closeSprite of sprite.closeSprites){
+        closeSprite.selected = true;
     }
 }
 
@@ -705,8 +724,6 @@ function gameLoop(){
         giveMovement(player, "ArrowLeft", "ArrowRight", "ArrowDown"); 
         giveMovement(sonic, "a", "d", "s");
 
-        highlightCloseSprites(player);
-
         //change sprite animations when moving and/or facing left
         if (player.facing === "left"){
             player.spriteSheet.y = 1;
@@ -733,6 +750,8 @@ function gameLoop(){
         else{
             sonic.animation.src = "images/sonic.png"
         }
+
+        highlightCloseSprites(player)
         
         //remove deleted sprites
         sprites = sprites.filter(sprite => !sprite.deleted);
@@ -742,13 +761,12 @@ function gameLoop(){
         for(let i=0; i<bullets.length; i++){
             if(isInBounds(bullets[i])){
                 updateSpriteGrid(bullets[i]);
-                let closeSprites = getCloseSprites(bullets[i])
-                for(let j=0; j<closeSprites.length; j++){
-                    if(isTouching(bullets[i], closeSprites[j]) && closeSprites[j].takesDamage){
-                        if(bullets[i].bullet.firedFrom !== closeSprites[j]){
-                            closeSprites[j].lives -= 1;
+                for(const closeSprite of bullets[i].closeSprites){
+                    if(isTouching(bullets[i], closeSprite) && closeSprite.takesDamage){
+                        if(bullets[i].bullet.firedFrom !== closeSprite){
+                            closeSprite.lives -= 1;
                             bullets[i].deleted = true;
-                            if(closeSprites[j] === player || closeSprites[j] === sonic){
+                            if(closeSprite === player || closeSprite === sonic){
                                 playAudio(ouch);
                             }
                         }  
@@ -886,22 +904,21 @@ function gameLoop(){
 
 //Loop through close sprites
 function closeSpritesLoop(sprite){
-    let closeSprites = getCloseSprites(sprite);
-    for(let i=0; i<closeSprites.length; i++){
-        if(closeSprites[i].type === "enemy"){
-            if(isTouching(closeSprites[i], sprite) && !closeSprites[i].deleted){
-                mutualCollide(sprite, closeSprites[i], 1);
-                if(closeSprites[i].bouncedOn){
-                    closeSprites[i].deleted = true;
+    for(const closeSprite of sprite.closeSprites){
+        if(closeSprite.type === "enemy"){
+            if(isTouching(closeSprite, sprite) && !closeSprite.deleted){
+                mutualCollide(sprite, closeSprite, 1);
+                if(closeSprite.bouncedOn){
+                    closeSprite.deleted = true;
                 }
-                else if(closeSprites[i].enemy.type === "goomba"){
+                else if(closeSprite.enemy.type === "goomba"){
                     sprite.lives --;
-                    closeSprites[i].deleted = true;
+                    closeSprite.deleted = true;
                         playAudio(ouch)
                 }
             }
         }
-        else if(closeSprites[i].type === "ground"){
+        else if(closeSprite.type === "ground"){
         
         }
     }
@@ -917,10 +934,11 @@ function createVelocity(){
 }
 
 function giveGravity(sprite){
-    let closeSprites = getCloseSprites(sprite).filter(s => s.type === "ground")
     let spriteCount = 0
-    for(let i=0; i < closeSprites.length; i++){
-        collide(sprite, closeSprites[i]);
+    for(const closeSprite of sprite.closeSprites){
+        if(closeSprite.type === "ground"){
+            collide(sprite, closeSprite);
+        }
   }
   let touching = isTouchingGround(sprite)
   if(touching){
@@ -1037,10 +1055,9 @@ function isNextTo(sprite1, sprite2, toleranceX = 0, useMidPoint = true, toleranc
 }
 
 function isNextToGround(sprite, toleranceX = 0, useMidPoint = true, toleranceY = 1){
-    let closeSprites = getCloseSprites(sprite);
-    for(let i=0; i < closeSprites.length; i++){
-        if(closeSprites[i].type === "ground"){
-            if(isNextTo(sprite, closeSprites[i], toleranceX, useMidPoint, toleranceY)){
+    for(const closeSprite of sprite.closeSprites){
+        if(closeSprite.type === "ground"){
+            if(isNextTo(sprite, closeSprite, toleranceX, useMidPoint, toleranceY)){
                 return true;
             }
         }
@@ -1048,11 +1065,31 @@ function isNextToGround(sprite, toleranceX = 0, useMidPoint = true, toleranceY =
     return false;
 }
 
+// function isNextToGround(sprite, toleranceX = 0, useMidPoint = true, toleranceY = 1){
+//     for(let i=0; i < grounds.length; i++){
+//             if(isNextTo(sprite, grounds[i], toleranceX, useMidPoint, toleranceY)){
+//                 return true;
+//             }
+//     }
+//     return false;
+// }
+
+// function isTouchingGround(sprite){
+//     let closeSprites = getCloseSprites(sprite);
+//     for(i=0; i<closeSprites.length; i++){
+//         if(closeSprites[i].type === "ground"){
+//             if(isTouching(sprite, closeSprites[i])){
+//                 return true;
+//             }
+//         }
+//     }
+//     return false
+// }
+
 function isTouchingGround(sprite){
-    let closeSprites = getCloseSprites(sprite);
-    for(i=0; i<closeSprites.length; i++){
-        if(closeSprites[i].type === "ground"){
-            if(isTouching(sprite, closeSprites[i])){
+    for(const closeSprite of sprite.closeSprites){
+        if(closeSprite.type === "ground"){
+            if(isTouching(sprite, closeSprite)){
                 return true;
             }
         }
@@ -1174,19 +1211,38 @@ function isInBounds(sprite){ //if the player is past the camera border, push the
     return true;
 }
 
+// function getCloseSprites(sprite){
+//     let closeSprites = new Set();
+//     for(let x=sprite.gridStartX; x<=sprite.gridEndX; x++){
+//         for(let y=sprite.gridStartY; y<=sprite.gridEndY; y++){
+//             let key = x + "," + y
+//             if(grid[key]){
+//                 for(let item of grid[key]){
+//                     closeSprites.add(item)
+//                 }
+//             }
+//         }
+//     }
+//     return Array.from(closeSprites);
+// }
+
 function getCloseSprites(sprite){
     let closeSprites = new Set();
-    for(let x=sprite.gridStartX; x<=sprite.gridEndX; x++){
-        for(let y=sprite.gridStartY; y<=sprite.gridEndY; y++){
-            let key = `${x},${y}`
-            if(grid[key]){
-                for(i=0; i<grid[key].length; i++){
-                    closeSprites.add(grid[key][i])
+    // for(let i=0; i<sprite.gridCells.length; i++){
+    //     for(let item of sprite.gridCells[i]){
+    //         closeSprites.add(item)
+    //     }
+    // }
+    for (const cell of sprite.gridCells) {
+        if (cell) { // Avoid iterating over undefined or empty cells
+            for (const item of cell) {
+                if (item !== sprite) { // Avoid adding the sprite itself
+                    closeSprites.add(item);
                 }
             }
         }
     }
-    return Array.from(closeSprites);
+    sprite.closeSprites = [...closeSprites];
 }
 
 //misc. functions

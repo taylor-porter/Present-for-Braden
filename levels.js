@@ -24,6 +24,11 @@ const levels = {
             [2750, -1100],
             [2850, -1100]
         ],
+        "spikes" : [
+            [1150, -500],
+            [1600, -600],
+            
+        ],
         "enemies" : [
             [400, 200, 50, 50],
             [2000, 200, 250, 250],
@@ -66,6 +71,7 @@ const levels = {
             [1200, -1000]
 
         ],
+        "spikes" : [],
         "enemies" : [
             [300, 200, 50, 50, "robot"],
             [250, -1050, 100, 100, "robot"]
@@ -82,6 +88,7 @@ const levels = {
         "grounds" : [
 
         ],
+        "spikes" : [],
         "enemies" : [
 
         ],
@@ -89,8 +96,37 @@ const levels = {
 
         ],
         "sky" : {
-            "src" : "images/sky4.png"
+            "src" : "images/sky4.2.png"
         }
-    }
-      
+    },
+    4: {
+        "grounds" : [
+
+        ],
+        "spikes" : [],
+        "enemies" : [
+
+        ],
+        "endPoint" : [
+
+        ],
+        "sky" : {
+            "src" : "images/sky4.2.png"
+        }
+    },
+    5: {
+        "grounds" : [
+
+        ],
+        "spikes" : [],
+        "enemies" : [
+
+        ],
+        "endPoint" : [
+
+        ],
+        "sky" : {
+            "src" : "images/sky4.2.png"
+        }
+    },
 }
