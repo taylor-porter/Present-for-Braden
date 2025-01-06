@@ -19,6 +19,7 @@ let robotShootRate = 75;
 let enemySpeed = -3;
 let fps = 45;
 let gridSize = 400;
+let cameraOffsetY = 0;
 if(layout){
     zoom = 0.3;
     startScreen = false;

@@ -19,8 +19,8 @@ function drawSprites() {
                 spritesLoaded ++;
                 ctx.drawImage(
                     sprites[i].animation, 
-                    sprites[i].x - camera.x,
-                    sprites[i].y - camera.y, 
+                    sprites[i].x - camera.x * sprites[i].distanceX,
+                    sprites[i].y - camera.y * sprites[i].distanceY, 
                     sprites[i].width, 
                     sprites[i].height
                 );
@@ -32,8 +32,8 @@ function drawSprites() {
                     sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
                     sprites[i].spriteSheet.width, 
                     sprites[i].spriteSheet.height,
-                    sprites[i].x - camera.x,
-                    sprites[i].y - camera.y, 
+                    sprites[i].x - camera.x * sprites[i].distanceX,
+                    sprites[i].y - camera.y * sprites[i].distanceY, 
                     sprites[i].width, 
                     sprites[i].height
                 );
@@ -50,8 +50,8 @@ function drawSprites() {
                 if(!sprites[i].spriteSheet.used){
                     ctx2.drawImage(
                         sprites[i].animation, 
-                        sprites[i].x - camera2.x,
-                        sprites[i].y - camera2.y, 
+                        sprites[i].x - camera2.x * sprites[i].distanceX,
+                        sprites[i].y - camera2.y * sprites[i].distanceY, 
                         sprites[i].width, 
                         sprites[i].height
                     );
@@ -63,8 +63,8 @@ function drawSprites() {
                         sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
                         sprites[i].spriteSheet.width, 
                         sprites[i].spriteSheet.height,
-                        sprites[i].x - camera2.x,
-                        sprites[i].y - camera2.y, 
+                        sprites[i].x - camera2.x * sprites[i].distanceX,
+                        sprites[i].y - camera2.y * sprites[i].distanceY, 
                         sprites[i].width, 
                         sprites[i].height
                     );

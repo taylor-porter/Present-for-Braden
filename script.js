@@ -186,6 +186,8 @@ function createSprite(posX, posY, width, height, type = ""){
         "lives" : 3,
         "visible" : true,
         "type" : type,
+        "distanceX" : 1,
+        "distanceY" : 1,
         "boundingBox" : {
             "used" : false,
             "type" : "rect",
@@ -255,6 +257,8 @@ let endPoint = createSprite(0, 0, 0, 0);
 
 
 function setSprites(){
+
+
     music.src = "audio/music" + level + ".mp3"
     if(!muted){
         music.play();
@@ -273,7 +277,7 @@ function setSprites(){
 
     sky = createSprite(0,0, canvas.width, canvas.height)
     sky.animation.src = skyData.src;
-    
+
     sprites.push(sky);
     
     sky2 = createSprite(0,0,canvas2.width, canvas2.height)
@@ -286,6 +290,25 @@ function setSprites(){
         sky2.width = canvas2.height * skyRatio;
         resizeCanvas()
     }
+
+    let distantObject = createSprite(0, -300, 3000, 600);
+    distantObject.distanceX = 0.7;
+    distantObject.animation.src = "images/mountain.webp"
+    //sprites.push(distantObject);
+
+    let tree2 = createSprite(670, 150, 100, 100)
+    tree2.animation.src = "images/tree5.png";
+    tree2.distanceX = 0.83;
+    sprites.push(tree2);
+
+
+    let tree = createSprite(800, 100, 150, 150)
+    tree.animation.src = "images/tree.png";
+    tree.distanceX = 0.86;
+    sprites.push(tree);
+    
+
+
 
     //Players
     player = createSprite(150, 150, 50, 100, "player");
@@ -775,7 +798,7 @@ function updateCamera(){
     }
     else if(sonic.deleted){
         targetX = player.x - camera.width / 2;  // Center the camera on the player (horizontal)
-        targetY = player.y - camera.height / 2 ; // Center the camera on the player (vertical)    
+        targetY = player.y - camera.height / 2 + cameraOffsetY; // Center the camera on the player (vertical)    
 
         camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
         camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
@@ -785,7 +808,7 @@ function updateCamera(){
     }
     else if(player.deleted){
         targetX = sonic.x - camera.width / 2;  // Center the camera on the player (horizontal)
-        targetY = sonic.y - camera.height / 2 ; // Center the camera on the player (vertical)    
+        targetY = sonic.y - camera.height / 2 + cameraOffsetY ; // Center the camera on the player (vertical)    
 
         camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
         camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
@@ -796,7 +819,7 @@ function updateCamera(){
     else if(!splitScreen){
 
 
-        targetY = (player.y + sonic.y) / 2 - camera.height / 2 
+        targetY = (player.y + sonic.y) / 2 - camera.height / 2  + cameraOffsetY
         targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
 
         camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
@@ -810,10 +833,10 @@ function updateCamera(){
         canvas2.classList.add("visible");
         if(playerSide === "left"){
             targetX = player.x - camera.width / 2;
-            targetY = player.y - camera.height / 2;
+            targetY = player.y - camera.height / 2  + cameraOffsetY;
 
             targetX2 = sonic.x - camera2.width / 2;
-            targetY2 = sonic.y - camera2.height / 2 //- 30;
+            targetY2 = sonic.y - camera2.height / 2  + cameraOffsetY;
             
             camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
             camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
@@ -823,10 +846,10 @@ function updateCamera(){
         }
         else{
             targetX = sonic.x - camera2.width / 2;
-            targetY = sonic.y - camera2.height / 2 //- 30;
+            targetY = sonic.y - camera2.height / 2 + cameraOffsetY;
             
             targetX2 = player.x - camera.width / 2;
-            targetY2 = player.y - camera.height / 2;
+            targetY2 = player.y - camera.height / 2  + cameraOffsetY;
 
             camera.x = lerp(camera.x, targetX, cameraSpeed * transitionProgress);
             camera.y = lerp(camera.y, targetY, cameraSpeed * transitionProgress);
@@ -1216,23 +1239,23 @@ function mutualCollide(sprite1, sprite2, bounce){
 function isInBounds(sprite){ //if the player is past the camera border, push the camera
     //left/right
     if(!splitScreen){
-        if(sprite.x > camera.x + camera.width || sprite.x + sprite.width < camera.x){
+        if(sprite.x > camera.x * sprite.distanceX + camera.width || sprite.x + sprite.width < camera.x * sprite.distanceX){
             return false;
         }
         //up/down
-        if(sprite.y > camera.y + camera.height || sprite.y + sprite.height < camera.y){
+        if(sprite.y > camera.y * sprite.distanceY + camera.height || sprite.y + sprite.height < camera.y * sprite.distanceY){
             return false;
         }
     }
     else{
-        if(sprite.x > camera.x + camera.width || sprite.x + sprite.width < camera.x){
-            if(sprite.x > camera2.x + camera2.width || sprite.x + sprite.width < camera2.x){
+        if(sprite.x > camera.x * sprite.distanceX + camera.width || sprite.x + sprite.width < camera.x * sprite.distanceX){
+            if(sprite.x > camera2.x * sprite.distanceX + camera2.width || sprite.x + sprite.width < camera2.x * sprite.distanceX){
                 return false;
             }
         }
         //up/down
-        if(sprite.y > camera.y + camera.height || sprite.y + sprite.height < camera.y){
-            if(sprite.y > camera2.y + camera2.height || sprite.y + sprite.height < camera2.y){
+        if(sprite.y > camera.y * sprite.distanceY + camera.height || sprite.y + sprite.height < camera.y * sprite.distanceY){
+            if(sprite.y > camera2.y * sprite.distanceY + camera2.height || sprite.y + sprite.height < camera2.y * sprite.distanceY){
                 return false;
             }
         }

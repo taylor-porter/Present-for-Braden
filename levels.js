@@ -42,7 +42,8 @@ const levels = {
             2750, -1200, 100, 100
         ],
         "sky" : {
-            "src" : "images/sky.jpg"
+            "src" : "images/sky.jpg",
+            
         }
     },
     2: {
@@ -96,7 +97,7 @@ const levels = {
 
         ],
         "sky" : {
-            "src" : "images/sky4.2.png"
+            "src" : "images/sky4.2.png",
         }
     },
     4: {
@@ -127,6 +128,7 @@ const levels = {
         ],
         "sky" : {
             "src" : "images/sky4.2.png"
+
         }
     },
 }
