@@ -237,6 +237,7 @@ function animateSprite(sprite, startFrame, endFrame){
 }
 
 let sky = createSprite(0,0, canvas.width, canvas.height);
+let skyRatio = 0;
 let sky2 = createSprite(0,0,canvas2.width, canvas2.height)
 
 let player = createSprite(150, 150, 50, 100, "player");
@@ -269,13 +270,22 @@ function setSprites(){
 
     //Skies
     let skyData = levels[level].sky;
+
     sky = createSprite(0,0, canvas.width, canvas.height)
     sky.animation.src = skyData.src;
+    
     sprites.push(sky);
-
+    
     sky2 = createSprite(0,0,canvas2.width, canvas2.height)
     sky2.animation.src = skyData.src;
     sprites.push(sky2);
+
+    sky.animation.onload = function(){
+        skyRatio = sky.animation.width / sky.animation.height;
+        sky.width = canvas.height * skyRatio;
+        sky2.width = canvas2.height * skyRatio;
+        resizeCanvas()
+    }
 
     //Players
     player = createSprite(150, 150, 50, 100, "player");
@@ -677,14 +687,33 @@ function updateTransition(){
 
 //Update the canvas width and height to maintain a proper aspect ratio
 function resizeCanvas(){
+    
     canvas.width = window.innerWidth / zoom;
     canvas.height = window.innerHeight / zoom;
 
     camera.width = canvas.width;
     camera.height = canvas.height;
 
-     sky.width = canvas.width;
-     sky.height = canvas.height;
+    let canvasRatio = canvas.width / canvas.height;
+
+    if(skyRatio > canvasRatio){
+        sky.width = canvas.height * skyRatio;
+        sky.height = canvas.height;
+
+        sky2.width = canvas2.width;
+        sky2.height = canvas2.height;
+    }
+    else{
+        sky.width = canvas.width;
+        sky.height = canvas.width / skyRatio;
+
+        sky2.width = canvas2.width;
+        sky2.height = canvas2.height;
+    }
+
+    // sky.x = canvas.x - (canvas.width / 2)
+    // sky2.x = canvas2.x - (canvas2.width / 2)
+
 
     canvas2.width = window.innerWidth / zoom;
     canvas2.height = window.innerHeight / zoom;
@@ -692,8 +721,9 @@ function resizeCanvas(){
     camera2.width = canvas.width;
     camera2.height = canvas2.height;
 
-     sky2.width = canvas2.width;
-     sky2.height = canvas2.height;
+     
+     drawSprites()
+     
 }
 
 resizeCanvas();
