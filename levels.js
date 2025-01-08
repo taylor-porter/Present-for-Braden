@@ -38,6 +38,7 @@ const levels = {
             [2050, -1050, 350, 350],
             [800, -350, 50, 50],
         ], 
+        "enemyTypes" : ["goomba"],
         "endPoint" : [
             2750, -1200, 100, 100
         ],
@@ -78,6 +79,7 @@ const levels = {
             [250, -1050, 100, 100, "robot"]
             
         ],
+        "enemyTypes" : ["goomba", "robot"],
         "endPoint" : [
             1100, -1100, 100, 100
         ],
@@ -91,8 +93,10 @@ const levels = {
         ],
         "spikes" : [],
         "enemies" : [
-
+            [500, -50, 100, 100, "flyer"],
+            
         ],
+        "enemyTypes" : ["goomba", "robot", "flyer"],
         "endPoint" : [
 
         ],
@@ -108,6 +112,7 @@ const levels = {
         "enemies" : [
 
         ],
+        "enemyTypes" : ["goomba", "robot", "flyer"],
         "endPoint" : [
 
         ],
@@ -123,6 +128,7 @@ const levels = {
         "enemies" : [
 
         ],
+        "enemyTypes" : ["goomba", "robot"],
         "endPoint" : [
 
         ],

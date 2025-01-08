@@ -17,6 +17,8 @@ const muteButton = document.getElementById("muteButton");
 const jumpSound = "audio/jump.mp3"
 const shootSound = "audio/shoot.mp3"
 const ouch = "audio/ouch.mp3"
+const healthGain = "audio/healthGain.mp3"
+const kiss = "audio/kiss2.mp3"
 const win = new Audio("audio/win.mp3")
 const music = new Audio("audio/music2.mp3")
 music.loop = true;
@@ -36,9 +38,18 @@ const rightButton = document.getElementById("rightButton");
 const imgCache = {
     "goomba" : new Image(),
     "robot" : new Image(),
+    "flyer": new Image(),
+    "flyerRight" : new Image(),
+    "flyerJump" : new Image(),
+    "flyerJumpRight" : new Image(),
+    
 }
 imgCache.goomba.src = "images/enemy.webp";
-imgCache.robot.src = "images/enemy2.png"
+imgCache.robot.src = "images/enemy2.png";
+imgCache.flyer.src = "images/frog-left.png";
+imgCache["flyerRight"].src = "images/frog.png";
+imgCache["flyerJump"].src = "images/frog-jumping-left.png";
+imgCache["flyerJumpRight"].src = "images/frog-jumping.png"
 const buttons = new Map([
     ["jumpButton", "ArrowUp"],
     ["leftButton", "ArrowLeft"],
@@ -176,7 +187,6 @@ function createSprite(posX, posY, width, height, type = ""){
         "animation" : new Image(),
         "velocityX" : 0, 
         "velocityY" : 0,
-        //"keyWasPressed" : {}, 
         "jumpCount" : 2,
         "facing": "right", 
         "deleted": false,
@@ -186,8 +196,10 @@ function createSprite(posX, posY, width, height, type = ""){
         "lives" : 3,
         "visible" : true,
         "type" : type,
-        "distanceX" : 1,
-        "distanceY" : 1,
+        "distanceX" : 1, //A value from 1 to 0 - determines how much the sprite's position changes during camera movement
+        "distanceY" : 1, //A smaller value means the object moves slower than the camera, giving a feeling of distance
+        "touchingGround" : false,
+        "bounciness" : 0, //A value from 0 to 1 - determines how much velocity is returned when the sprite and ground collide
         "boundingBox" : {
             "used" : false,
             "type" : "rect",
@@ -195,7 +207,7 @@ function createSprite(posX, posY, width, height, type = ""){
             "height" : null,
             "triangle" : [],
         },
-        "spriteSheet" : {
+        "spriteSheet" : { 
             "used" : false,
             "x" : 0, 
             "y" : 0,
@@ -247,14 +259,16 @@ let sonic = createSprite(250, 150, 100, 100, "sonic");
 
 let grounds = [];
 let enemies = [];
+let enemyTypes = [];
+
 let spikes = [];
 
 let bullets = [];
 
 let endPoint = createSprite(0, 0, 0, 0);
 
-
-
+let flyerCount = 0;
+let enemyCount = 0;
 
 function setSprites(){
 
@@ -299,13 +313,13 @@ function setSprites(){
     let tree2 = createSprite(670, 150, 100, 100)
     tree2.animation.src = "images/tree5.png";
     tree2.distanceX = 0.83;
-    sprites.push(tree2);
+    //sprites.push(tree2);
 
 
     let tree = createSprite(800, 100, 150, 150)
     tree.animation.src = "images/tree.png";
     tree.distanceX = 0.86;
-    sprites.push(tree);
+    //sprites.push(tree);
     
 
 
@@ -357,6 +371,7 @@ function setSprites(){
 
     //Enemies
     enemies = []
+    enemyTypes = levels[level].enemyTypes
     let enemyData = levels[level].enemies
 
     for(let i=0; i<enemyData.length; i++){
@@ -387,7 +402,7 @@ function createGround(x, y, width, height){
 
 function createSpike(x, y, width = 50, height = 50){
     let newSpike = createSprite(x, y, width, height, "spike");
-    newSpike.animation.src = "images/spike-metal.png";
+    newSpike.animation.src = "images/spike3.png";
     newSpike.boundingBox.used = true;
     newSpike.boundingBox.type = "triangle";
     newSpike.boundingBox.triangle = [
@@ -404,15 +419,16 @@ const enemySkins = {
     "robot" : "images/enemy2.png"
 }
 
-const enemyTypes = ["goomba", "robot"]
-
 //enemies
 function createEnemy(x, y, width = 50, height = 50, enemyType = "goomba"){
     let newEnemy = createSprite(x, y, width, height, "enemy");
 
     enemies.push(newEnemy);
     newEnemy.takesDamage = true;
-    newEnemy.hasGravity = true;
+    if(enemyType !== "ghost" && enemyType !== "flyer"){
+        newEnemy.hasGravity = true;
+    }
+    
     // if(enemyType === "goomba"){
         newEnemy.velocityX  = enemySpeed;
     // }
@@ -431,11 +447,23 @@ function createEnemy(x, y, width = 50, height = 50, enemyType = "goomba"){
 }
 
 function enemyLoop(sprite){
-    if(isInBounds(sprite)){
+    if(isInBounds(sprite) && sprite.visible === true){
         if(isTouching(sprite, player) && !sprite.deleted){
             mutualCollide(player, sprite, 1);
             if(sprite.bouncedOn){
                 sprite.deleted = true;
+            }
+            else if(sprite.enemy.type === "flyer"){
+                if(player.bouncedOn){
+                    player.lives --;
+                    playerLives.innerText = "Lives: " + player.lives
+                    playAudio(ouch);
+                }
+                else{
+                    player.lives ++;
+                    playerLives.innerText = "Lives: " + player.lives
+                    playAudio(kiss);
+                }
             }
             else if(sprite.enemy.type === "goomba"){
                 player.lives --;
@@ -448,8 +476,19 @@ function enemyLoop(sprite){
         else if(isTouching(sprite, sonic)){
             mutualCollide(sonic, sprite, 1);
             if(sprite.bouncedOn){
-                sprite.deleted = true;
-                
+                sprite.deleted = true;  
+            }
+            else if(sprite.enemy.type === "flyer"){
+                if(sonic.bouncedOn){
+                    sonic.lives --;
+                    sonicLives.innerText = "Lives: " + sonic.lives
+                    playAudio(ouch)
+                }
+                else{
+                    sonic.lives ++;
+                    sonicLives.innerText = "Lives: " + sonic.lives
+                    playAudio(kiss);
+                }
             }
             else if(sprite.enemy.type === "goomba"){
                 sonic.lives --;
@@ -460,7 +499,7 @@ function enemyLoop(sprite){
             }
         }
         if(!isTouching(sprite, player && !isTouching(sprite, sonic))){
-            if(Math.abs(sprite.velocityX !== 3)){
+            if(Math.abs(sprite.velocityX !== 3) && sprite.enemy.type !== "flyer"){
                 sprite.velocityX = -3;
             }
         }
@@ -476,12 +515,127 @@ function enemyLoop(sprite){
                 shootBullet(sprite)
             }
         }
-        if(!isNextToGround(sprite)){
+        if(!isNextToGround(sprite) && sprite.enemy.type !== "flyer"){
             sprite.velocityX = sprite.velocityX * -1;
         }
     }
-    else{
+    else if(sprite.enemy.type === "flyer"){
         sprite.velocityX = 0;
+    }
+
+    if(sprite.enemy.type === "ghost"){
+        let thresholdX = Math.abs(player.x - sprite.x);
+        let thresholdY = Math.abs(player.y - sprite.y)
+
+        if(thresholdX > player.width){
+            if(player.x < sprite.x){
+                sprite.velocityX -= acceleration;
+            }
+            else if(player.x > sprite.x){
+                if(sprite.velocityX < 0){
+                    sprite.velocityX = Math.abs(acceleration)
+                }
+                sprite.velocityX += acceleration;
+                
+            }
+        }
+        else{
+            sprite.velocityX = 0
+        }
+        if(thresholdY > player.height) {
+            if(player.y - player.height < sprite.y){
+                // sprite.velocityY -= acceleration;
+                 //sprite.velocityY = -3;
+                 sprite.velocityY = -3;
+             }
+            else if(player.y > sprite.y){
+                //sprite.velocityY += acceleration;
+                sprite.velocityY = 3;
+            }
+            
+        }
+        else{
+            if(getRandomNumber(0,1000) === 1){
+                sprite.velocityY = -1 * sprite.velocityY
+            }
+            // if(getRandomNumber(0,100) === 1){
+            //     sprite.velocityY = 3
+            // }
+        }
+        if(sprite.y + sprite.height > 250){
+            sprite.velocityY = -1 * sprite.velocityY
+        }
+        
+        
+    }
+
+    if(sprite.enemy.type === "flyer"){
+        if(player.x < sprite.x){
+            if(sprite.velocityX > 0){
+                if(sprite.isTouchingGround){
+                    sprite.velocityX = Math.abs(sprite.velocityX) * -1
+                }
+            }
+            if(Math.abs(sprite.velocityX) < maxSpeed){
+                sprite.velocityX -= acceleration;
+            }
+            
+            sprite.facing = "left";
+        }
+        else if(player.x > sprite.x){
+            if(sprite.velocityX < 0){
+                if(sprite.isTouchingGround){
+                    sprite.velocityX = Math.abs(sprite.velocityX)
+                }
+                
+            }
+            if(Math.abs(sprite.velocityX) < maxSpeed){
+                sprite.velocityX += acceleration;
+            }
+            sprite.facing = "right"
+        }
+        else{
+            sprite.velocityX = 0;
+        }
+        if(!isNextToGround(sprite, 0, true, false)){
+            sprite.velocityX = sprite.velocityX * -1;
+            
+        }
+       
+        if(isTouchingGround(sprite)){
+            sprite.isTouchingGround = true;
+            for(let i=0; i<grounds.length; i++){
+                collide(sprite, grounds[i])
+            } 
+            sprite.velocityY = 0;
+            if(sprite.x > player.x){
+                sprite.animation = imgCache.flyer
+            }
+            else{
+                sprite.animation = imgCache.flyerRight
+            }
+        }
+        if(sprite.isTouchingGround){
+            for(let i=0; i<grounds.length; i++){
+                collide(sprite, grounds[i])
+            } 
+            sprite.velocityY = 0;
+            if(getRandomNumber(1,10) === 1){
+                //sprite.velocityY = -1 * sprite.velocityY
+                sprite.y -= 2;
+                sprite.velocityY = -1 * getRandomNumber(25, 35);
+                sprite.isTouchingGround = false;
+                if(sprite.x > player.x){
+                    sprite.animation = imgCache.flyerJump
+                }
+                else{
+                    sprite.animation = imgCache.flyerJumpRight
+                }
+            }
+        }
+        else{
+            sprite.velocityY += gravity;
+        }
     }
 }
 
@@ -953,9 +1107,23 @@ function gameLoop(){
                 let type = enemyTypes[getRandomNumber(0, enemyTypes.length - 1)]
                 let newEnemy = createEnemy(getRandomNumber(0,3000), getRandomNumber(-3000,200), size, size, type);
                 newEnemy.visible = false;
-                if(isNextToGround(newEnemy, 0, false)){
+                if(newEnemy.enemy.type === "ghost"){
+                    if(getRandomNumber(0,1500) === 1){
+                       newEnemy.visible = true;
+                        flyerCount ++;
+                        console.log("flyer created" + flyerCount)
+                    }
+                    
+
+                    if(flyerCount % 100 === 0){
+                        console.log("flyer created" + flyerCount)
+                    }
+                    
+                }
+                else if(isNextToGround(newEnemy, 0, false)){
                     newEnemy.visible = true;
-                    console.log("enemy created")
+                    enemyCount ++;
+                    console.log("enemy created" + enemyCount)
                 }    
                 else{
                     newEnemy.deleted = true;
@@ -1017,17 +1185,16 @@ function createVelocity(sprite){
 function giveGravity(sprite){
     for(i=0; i < grounds.length; i++){
         collide(sprite, grounds[i]);
-  }
-  let touching = isTouchingGround(sprite)
-  if(touching){
-    sprite.jumpCount = 0;
-    sprite.velocityY = 0;
-  }
-  else{
-      sprite.velocityY += gravity;
-
-
-  }
+    }
+    if(isTouchingGround(sprite)){
+        sprite.jumpCount = 0;
+        sprite.velocityY = 0;
+        sprite.isTouchingGround = true;
+    }
+    else{
+        sprite.velocityY += gravity;
+        sprite.isTouchingGround = false;
+    }
 }
 
 function giveMovement(sprite, left, right, down){
@@ -1092,30 +1259,56 @@ function isNextToOG(sprite1, sprite2,) {
    }
 }
 
-function isNextTo(sprite1, sprite2, toleranceX = 0, useMidPoint = true, toleranceY = 1) {
+function isNextTo(sprite1, sprite2, toleranceX = 0, useMidPoint = true, useY = true, toleranceY = 1) {
     if(useMidPoint){
         if (
             sprite1.x + sprite1.width / 2 < sprite2.x + sprite2.width - toleranceX &&
-            sprite1.x + sprite1.width / 2 > sprite2.x + toleranceX &&
-            Math.abs(sprite1.y + sprite1.height - sprite2.y) <= toleranceY &&
-            sprite1.y + sprite1.height <= sprite2.y
-        ) {return true;}
-        else {return false;}
+            sprite1.x + sprite1.width / 2 > sprite2.x + toleranceX 
+        ) {
+            if(useY){
+                if(Math.abs(sprite1.y + sprite1.height - sprite2.y) <= toleranceY &&
+                sprite1.y + sprite1.height <= sprite2.y){
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            } else{
+                return true;
+            }
+            
+        }
+        else {
+            return false;
+        }
     }
     else{
         if (
             sprite1.x + sprite1.width < sprite2.x + sprite2.width - toleranceX &&
-            sprite1.x > sprite2.x + toleranceX &&
-            Math.abs(sprite1.y + sprite1.height - sprite2.y) <= toleranceY &&
-            sprite1.y + sprite1.height <= sprite2.y
-        ) {return true;}
-        else {return false;}
+            sprite1.x > sprite2.x + toleranceX
+        ) {
+            if(useY){
+                if(Math.abs(sprite1.y + sprite1.height - sprite2.y) <= toleranceY &&
+                sprite1.y + sprite1.height <= sprite2.y){
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            } else{
+                return true;
+            }
+            
+        }
+        else {
+            return false;
+        }
     }
 }
 
-function isNextToGround(sprite, toleranceX = 0, useMidPoint = true, toleranceY = 1){
+function isNextToGround(sprite, toleranceX = 0, useMidPoint = true, useY = true, toleranceY = 1){
     for(let i=0; i < grounds.length; i++){
-        if(isNextTo(sprite, grounds[i], toleranceX, useMidPoint, toleranceY)){
+        if(isNextTo(sprite, grounds[i], toleranceX, useMidPoint, useY, toleranceY)){
             return true;
         }
     }
