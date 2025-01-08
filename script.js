@@ -515,15 +515,80 @@ function enemyLoop(sprite){
                 shootBullet(sprite)
             }
         }
+
+        else if(sprite.enemy.type === "flyer"){
+            if(player.x < sprite.x){
+                if(sprite.velocityX > 0){
+                    if(sprite.isTouchingGround){
+                        sprite.velocityX = Math.abs(sprite.velocityX) * -1
+                    }
+                }
+                if(Math.abs(sprite.velocityX) < maxSpeed){
+                    sprite.velocityX -= acceleration * 0.9;
+                }
+                
+                sprite.facing = "left";
+            }
+            else if(player.x > sprite.x){
+                if(sprite.velocityX < 0){
+                    if(sprite.isTouchingGround){
+                        sprite.velocityX = Math.abs(sprite.velocityX)
+                    }
+                    
+                }
+                if(Math.abs(sprite.velocityX) < maxSpeed){
+                    sprite.velocityX += acceleration * 0.9;
+                }
+                sprite.facing = "right"
+            }
+            else{
+                sprite.velocityX = 0;
+            }
+            if(!isNextToGround(sprite, 0, true, false)){
+                sprite.velocityX = sprite.velocityX * -1;
+                
+            }
+           
+            if(isTouchingGround(sprite)){
+                sprite.isTouchingGround = true;
+                for(let i=0; i<grounds.length; i++){
+                    collide(sprite, grounds[i])
+                } 
+                sprite.velocityY = 0;
+                if(sprite.x > player.x){
+                    sprite.animation = imgCache.flyer
+                }
+                else{
+                    sprite.animation = imgCache.flyerRight
+                }
+            }
+            if(sprite.isTouchingGround){
+                for(let i=0; i<grounds.length; i++){
+                    collide(sprite, grounds[i])
+                } 
+                sprite.velocityY = 0;
+                if(getRandomNumber(1,10) === 1){
+                    //sprite.velocityY = -1 * sprite.velocityY
+                    sprite.y -= 2;
+                    sprite.velocityY = -1 * getRandomNumber(25, 35);
+                    sprite.isTouchingGround = false;
+                    if(sprite.x > player.x){
+                        sprite.animation = imgCache.flyerJump
+                    }
+                    else{
+                        sprite.animation = imgCache.flyerJumpRight
+                    }
+                }
+            }
+            else{
+                sprite.velocityY += gravity;
+            }
+        }
         if(!isNextToGround(sprite) && sprite.enemy.type !== "flyer"){
             sprite.velocityX = sprite.velocityX * -1;
         }
     }
-    else if(sprite.enemy.type === "flyer"){
-        sprite.velocityX = 0;
-    }
-
-    if(sprite.enemy.type === "ghost"){
+    else if(sprite.enemy.type === "ghost"){
         let thresholdX = Math.abs(player.x - sprite.x);
         let thresholdY = Math.abs(player.y - sprite.y)
 
@@ -568,75 +633,11 @@ function enemyLoop(sprite){
         
         
     }
-
-    if(sprite.enemy.type === "flyer"){
-        if(player.x < sprite.x){
-            if(sprite.velocityX > 0){
-                if(sprite.isTouchingGround){
-                    sprite.velocityX = Math.abs(sprite.velocityX) * -1
-                }
-            }
-            if(Math.abs(sprite.velocityX) < maxSpeed){
-                sprite.velocityX -= acceleration;
-            }
-            
-            sprite.facing = "left";
-        }
-        else if(player.x > sprite.x){
-            if(sprite.velocityX < 0){
-                if(sprite.isTouchingGround){
-                    sprite.velocityX = Math.abs(sprite.velocityX)
-                }
-                
-            }
-            if(Math.abs(sprite.velocityX) < maxSpeed){
-                sprite.velocityX += acceleration;
-            }
-            sprite.facing = "right"
-        }
-        else{
-            sprite.velocityX = 0;
-        }
-        if(!isNextToGround(sprite, 0, true, false)){
-            sprite.velocityX = sprite.velocityX * -1;
-            
-        }
-       
-        if(isTouchingGround(sprite)){
-            sprite.isTouchingGround = true;
-            for(let i=0; i<grounds.length; i++){
-                collide(sprite, grounds[i])
-            } 
-            sprite.velocityY = 0;
-            if(sprite.x > player.x){
-                sprite.animation = imgCache.flyer
-            }
-            else{
-                sprite.animation = imgCache.flyerRight
-            }
-        }
-        if(sprite.isTouchingGround){
-            for(let i=0; i<grounds.length; i++){
-                collide(sprite, grounds[i])
-            } 
-            sprite.velocityY = 0;
-            if(getRandomNumber(1,10) === 1){
-                //sprite.velocityY = -1 * sprite.velocityY
-                sprite.y -= 2;
-                sprite.velocityY = -1 * getRandomNumber(25, 35);
-                sprite.isTouchingGround = false;
-                if(sprite.x > player.x){
-                    sprite.animation = imgCache.flyerJump
-                }
-                else{
-                    sprite.animation = imgCache.flyerJumpRight
-                }
-            }
-        }
-        else{
-            sprite.velocityY += gravity;
-        }
+    else{
+        sprite.velocityX = 0;
     }
+
+
 }
 
 function bulletLoop(bullet){
