@@ -20,6 +20,7 @@ const ouch = "audio/ouch.mp3"
 const healthGain = "audio/healthGain.mp3"
 const kiss = "audio/kiss2.mp3"
 const win = new Audio("audio/win.mp3")
+const win2 = new Audio("audio/win2.mp3")
 const music = new Audio("audio/music2.mp3")
 music.loop = true;
 
@@ -84,16 +85,11 @@ function setButton(button, value){
     keys[buttons.get(button.id)] = value;
     if(button.id === "jumpButton"){
         if(value === true && !keyWasPressed.ArrowUp){
-            keyWasPressed.ArrowUp = true;
-            if(player.jumpCount < 2){
-                player.y -= 2;
-                player.velocityY = -1 * jumpForce;
-                player.jumpCount++;
-                playAudio(jumpSound);
-            }
+            jump(player)
         }
         else if(value === false){
             keyWasPressed.ArrowUp = false;
+            player.hasGravity = true;
         }
     }
     if(button.id === "shootButton"){
@@ -200,6 +196,7 @@ function createSprite(posX, posY, width, height, type = ""){
         "distanceY" : 1, //A smaller value means the object moves slower than the camera, giving a feeling of distance
         "touchingGround" : false,
         "bounciness" : 0, //A value from 0 to 1 - determines how much velocity is returned when the sprite and ground collide
+        "mode" : "default", //Changed when player goes through portal
         "boundingBox" : {
             "used" : false,
             "type" : "rect",
@@ -257,6 +254,8 @@ let sky2 = createSprite(0,0,canvas2.width, canvas2.height)
 let player = createSprite(150, 150, 50, 100, "player");
 let sonic = createSprite(250, 150, 100, 100, "sonic");
 
+let portals = [];
+
 let grounds = [];
 let enemies = [];
 let enemyTypes = [];
@@ -285,6 +284,8 @@ function setSprites(){
     gameStateMenu.style.display = "none";
 
     sprites = [];
+
+
 
     //Skies
     let skyData = levels[level].sky;
@@ -320,9 +321,13 @@ function setSprites(){
     tree.animation.src = "images/tree.png";
     tree.distanceX = 0.86;
     //sprites.push(tree);
-    
 
-
+    //portals
+    portals = [];
+    let portalData = levels[level].portals;
+    for(let i=0; i<portalData.length; i++){
+        createPortal(portalData[i][0], portalData[i][1], portalData[i][2], portalData[i][3], portalData[i][4])
+    }
 
     //Players
     player = createSprite(150, 150, 50, 100, "player");
@@ -397,7 +402,30 @@ function createGround(x, y, width, height){
     if(h === undefined){
         h = 75;
     }
-    grounds.push(createSprite(x, y, w, h));
+    let newGround = (createSprite(x, y, w, h));
+    newGround.animation.src = "images/ground.png"
+    newGround.type = "ground"
+    sprites.push(newGround);
+    grounds.push(newGround);
+}
+
+function createPortal(x, y, width, height){
+    let newPortal = createSprite(x,y,width,height);
+    newPortal.animation.src = "images/portal-red.png";
+    newPortal.type = "portal"
+    sprites.push(newPortal);
+    portals.push(newPortal);
+}
+
+function portalLoop(sprite){
+    if(isTouching(sprite, player)){
+        player.mode = "flying";
+        playAudio(win)
+    }
+    if(isTouching(sprite, sonic)){
+        sonic.mode = "flying";
+        playAudio(win)
+    }
 }
 
 function createSpike(x, y, width = 50, height = 50){
@@ -741,22 +769,11 @@ let keyWasPressed = {}
 //To check if key down and/or key went down
 window.addEventListener("keydown", (event) => {
     if(event.key === "ArrowUp" && !keyWasPressed.ArrowUp){
-        keyWasPressed.ArrowUp = true;
-        if(player.jumpCount < 2){
-            player.y -= 2;
-            player.velocityY = -1 * jumpForce;
-            player.jumpCount++;
-            playAudio(jumpSound);
-        }
+        
+        jump(player)
     }
     if(event.key === "w" && !keyWasPressed.w){
-        keyWasPressed.w = true;
-        if(sonic.jumpCount < 2){
-            sonic.y -= 2;
-            sonic.velocityY = -1 * jumpForce;
-            sonic.jumpCount++;
-            playAudio(jumpSound);
-        }
+        jump(sonic)
     }
     if(event.key === "ArrowDown" && !keyWasPressed.ArrowDown){
         if(!machineGuns){
@@ -777,9 +794,11 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("keyup", function(event){
     if(event.key === "ArrowUp"){
         keyWasPressed.ArrowUp = false;
+        player.hasGravity = true;
     }
     if(event.key === "w"){
         keyWasPressed.w = false;
+        sonic.hasGravity = true;
     }
     if(event.key === "ArrowDown"){
         keyWasPressed.ArrowDown = false;
@@ -1098,6 +1117,15 @@ function gameLoop(){
             if(sprites[i].type === "spike"){
                 spikeLoop(sprites[i])
             }
+            if(sprites[i].type === "portal"){
+                portalLoop(sprites[i])
+            }
+            if(sprites[i].type === "ground"){
+                collide(player, sprites[i]);
+                if(multiplayer){
+                    collide(sonic, sprites[i]);
+                }
+            }
             createVelocity(sprites[i]);
         }
 
@@ -1184,19 +1212,48 @@ function createVelocity(sprite){
 }
 
 function giveGravity(sprite){
+    if(isTouchingGround(sprite)){
+        sprite.jumpCount = 0;
+        sprite.isTouchingGround = true;
+    }
     for(i=0; i < grounds.length; i++){
         collide(sprite, grounds[i]);
     }
-    if(isTouchingGround(sprite)){
-        sprite.jumpCount = 0;
-        sprite.velocityY = 0;
-        sprite.isTouchingGround = true;
-    }
-    else{
-        sprite.velocityY += gravity;
+    if(!isTouchingGround(sprite)){
+        if(sprite.velocityY < terminalVelocity){
+            sprite.velocityY += gravity;
+        }
+            
         sprite.isTouchingGround = false;
     }
 }
+
+
+// function giveGravity(sprite){
+//     sprite.isTouchingGround = false;
+//     for(i=0; i < grounds.length; i++){
+//         if(isTouching(sprite, grounds[i])){
+//             if(Math.abs(sprite.y + sprite.height - grounds[i].y) < 5){
+//                 collide(sprite, grounds[i]);
+//             }
+//             else{
+//                 if(sprite === player){
+//                     console.log("yay!" + Math.abs(sprite.y + sprite.height - grounds[i].y) + " " + i)
+//                 }
+//                 sprite.velocityY = Math.abs(sprite.velocityY) * -1 * 0.8 //* (grounds[i].bounciness + sprite.bounciness)
+//             }
+                
+            
+//             sprite.jumpCount = 0;
+//             sprite.isTouchingGround = true;
+//         }
+//     }
+//     //console.log(player.isTouchingGround)
+//     if(!sprite.isTouchingGround){
+//         sprite.velocityY += gravity;
+//         sprite.isTouchingGround = false;
+//     }
+// }
 
 function giveMovement(sprite, left, right, down){
     if(keys[left] && sprite.velocityX > -1 * maxSpeed){
@@ -1218,6 +1275,30 @@ function giveMovement(sprite, left, right, down){
         sprite.velocityX = 0;
       }
 }
+function jump(sprite){
+    if(sprite.mode !== "flying"){
+        if(sprite === player){
+            keyWasPressed.ArrowUp = true;
+        }
+        else if(sprite === sonic){
+            keyWasPressed.w = true;
+        }
+        if(sprite.jumpCount < 3){
+            sprite.y -= 2;
+            sprite.velocityY = -1 * jumpForce;
+            sprite.jumpCount++;
+            playAudio(jumpSound);
+        }
+    }
+    else{
+        if(sprite.velocityY > -10){
+            sprite.velocityY = -10;
+            sprite.hasGravity = false;
+            console.log("hi")
+        }
+    }
+}
+
 function shootBullet(sprite){
     if(!sprite.deleted){
         let newBullet = (createSprite(sprite.x, sprite.y + sprite.height / 1.5, 10, 10, "bullet"))
