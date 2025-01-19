@@ -197,6 +197,10 @@ function createSprite(posX, posY, width, height, type = ""){
         "touchingGround" : false,
         "bounciness" : 0, //A value from 0 to 1 - determines how much velocity is returned when the sprite and ground collide
         "mode" : "default", //Changed when player goes through portal
+        "isTouching" : {},
+        "spike" : {
+            "direction" : "up"
+        },
         "boundingBox" : {
             "used" : false,
             "type" : "rect",
@@ -358,7 +362,7 @@ function setSprites(){
     let groundData = levels[level].grounds
 
     for(i=0; i<10; i++){
-        grounds[i] = createSprite(i * 300, 250, 300, 150);
+        createGround(i * 300, 250, 300, 150);
     }
     for(let i=0; i<groundData.length; i++){
         createGround(groundData[i][0], groundData[i][1], groundData[i][2], groundData[i][3])
@@ -371,7 +375,7 @@ function setSprites(){
 
     let spikeData = levels[level].spikes;
     for(let i=0; i<spikeData.length; i++){
-        createSpike(spikeData[i][0], spikeData[i][1], spikeData[i][2], spikeData[i][3])
+        createSpike(spikeData[i][0], spikeData[i][1], spikeData[i][2], spikeData[i][3], spikeData[i][4])
     }
 
     //Enemies
@@ -409,9 +413,10 @@ function createGround(x, y, width, height){
     grounds.push(newGround);
 }
 
-function createPortal(x, y, width, height){
+function createPortal(x, y, width, height, mode = "flying"){
     let newPortal = createSprite(x,y,width,height);
     newPortal.animation.src = "images/portal-red.png";
+    newPortal.mode = mode
     newPortal.type = "portal"
     sprites.push(newPortal);
     portals.push(newPortal);
@@ -419,25 +424,27 @@ function createPortal(x, y, width, height){
 
 function portalLoop(sprite){
     if(isTouching(sprite, player)){
-        player.mode = "flying";
-        playAudio(win)
+        console.log(sprite.mode)
+        if(player.mode !== sprite.mode){
+            playAudio(healthGain);
+            player.mode = sprite.mode;
+        }
     }
     if(isTouching(sprite, sonic)){
         sonic.mode = "flying";
-        playAudio(win)
+        playAudio(ouch)
     }
 }
 
-function createSpike(x, y, width = 50, height = 50){
+function createSpike(x, y, direction = "up", width = 50, height = 50){
     let newSpike = createSprite(x, y, width, height, "spike");
-    newSpike.animation.src = "images/spike3.png";
-    newSpike.boundingBox.used = true;
-    newSpike.boundingBox.type = "triangle";
-    newSpike.boundingBox.triangle = [
-        {"x" : newSpike.x, "y" : newSpike.y + newSpike.height}, //left
-        {"x" : (newSpike.x + (newSpike.width / 2)), "y" : newSpike.y}, //top
-        {"x" : newSpike.x + newSpike.width, "y" : newSpike.y + newSpike.height} //bottom
-    ]
+    if(direction === "up"){
+        newSpike.animation.src = "images/spike3.png";
+    }
+    else{
+        newSpike.animation.src = "images/spike3-down.png";
+        newSpike.spike.direction = "down"
+    }
     sprites.push(newSpike);
     spikes.push(newSpike);
 }
@@ -696,35 +703,69 @@ function bulletLoop(bullet){
 function spikeLoop(spike){
     let spikeCenter = spike.x + spike.width / 2;
     if(isTouching(spike, player)){
-        if(player.x < spikeCenter && player.x + player.width > spikeCenter){
-            player.lives --;
-            playAudio(ouch);
-            playerLives.innerText = "Lives: " + player.lives;
+        if(spike.spike.direction === "up"){
+            if(player.x < spikeCenter && player.x + player.width > spikeCenter){
+                player.lives --;
+                playAudio(ouch);
+                playerLives.innerText = "Lives: " + player.lives;
+            }
+            else{
+                player.velocityY += gravity;
+            }
+            if(player.x > spike.x){
+                if(!keys.ArrowUp){
+                    player.y = (spike.y - player.height) + (player.x - spike.x);
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = acceleration * 3;
+            }
+            else {
+                if(!keys.ArrowUp){
+                    player.y = (spike.y - player.height) + Math.abs(player.x - spike.x) //+ player.width / 2;
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = -acceleration * 3;
+    
+            }
         }
         else{
-            player.velocityY += gravity;
+            if(player.x < spikeCenter && player.x + player.width > spikeCenter){
+                player.lives --;
+                playAudio(ouch);
+                playerLives.innerText = "Lives: " + player.lives;
+            }
+            else{
+                player.velocityY -= gravity;
+            }
+            if(player.x > spike.x){
+                if(!keys.ArrowUp){
+                    player.y = spike.y //- (player.x - spike.x);
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = acceleration * 3;
+            }
+            else {
+                if(!keys.ArrowUp){
+                    player.y = spike.y// - Math.abs(player.x - spike.x) //+ player.width / 2;
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = -acceleration * 3;
+    
+            }
         }
-        if(player.x > spike.x){
-            if(!keys.ArrowUp){
-                player.y = (spike.y - player.height) + (player.x - spike.x);
-                player.velocityY = 0;
-            }
-            if(player.velocityY > 0){
-                
-            }
-            player.velocityX = acceleration * 3;
-        }
-        else {
-            if(!keys.ArrowUp){
-                player.y = (spike.y - player.height) + Math.abs(player.x - spike.x) //+ player.width / 2;
-                player.velocityY = 0;
-            }
-            if(player.velocityY > 0){
-                
-            }
-            player.velocityX = -acceleration * 3;
-
-        }
+        
     }
 
     if(isTouching(spike, sonic)){
@@ -794,11 +835,17 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("keyup", function(event){
     if(event.key === "ArrowUp"){
         keyWasPressed.ArrowUp = false;
-        player.hasGravity = true;
+        if(player.mode === "flying"){
+            player.hasGravity = true;
+        }
+        
     }
     if(event.key === "w"){
         keyWasPressed.w = false;
-        sonic.hasGravity = true;
+        if(sonic.mode === "flying"){
+            sonic.hasGravity = true;
+        }
+        
     }
     if(event.key === "ArrowDown"){
         keyWasPressed.ArrowDown = false;
@@ -1069,24 +1116,69 @@ function gameLoop(){
         giveMovement(sonic, "a", "d", "s");
 
         //change sprite animations when moving and/or facing left
-        if (player.facing === "left"){
-            player.spriteSheet.y = 1;
-            if(Math.abs(player.velocityX) > 1){
-                animateSprite(player, 0, 2);
+        if(player.mode === "default"){
+            player.spriteSheet.used = true;
+            player.width = 50;
+            player.height = 100;
+            player.animation.src = "images/braden-sprite-sheet.png"
+            if (player.facing === "left"){
+                player.spriteSheet.y = 1;
+                if(Math.abs(player.velocityX) > 1){
+                    animateSprite(player, 0, 2);
+                }
+                else{
+    
+                }
             }
             else{
-
+                player.spriteSheet.y = 0;
+                if(Math.abs(player.velocityX) > 1){
+                    animateSprite(player, 0, 2);
+                }
+                else{
+    
+                }
             }
+
         }
+        else if(player.mode === "ball"){
+            
+            if(player.facing === "right"){
+                player.animation.src = "images/braden-head.png"
+            }
+            else{
+                player.animation.src = "images/braden-head-left.png"
+            }
+            player.width = 100;
+            player.height = 100;
+            player.spriteSheet.used = false;
+        } 
         else{
-            player.spriteSheet.y = 0;
-            if(Math.abs(player.velocityX) > 1){
-                animateSprite(player, 0, 2);
+            if(player.facing === "left"){
+                player.animation.src = "images/braden-on-ship-left.png";
             }
             else{
+                player.animation.src = "images/braden-on-ship.png";
+            }
+            player.spriteSheet.used = false;
+            player.width = 100;
 
+            if(player.velocityY === 0 && !isNextToGround(player) && player.mode === "wave"){
+                player.velocityY = -10
+            }
+            if(player.mode === "flying"){
+                let playerOnBottom = false;
+                for(let i=0; i>grounds.length; i++){
+                    if(player.isTouching(grounds[i] && player.y >= grounds[i].y + grounds[i].height)){
+                        playerOnBottom = true;
+                    }
+                }
+                if(keys.ArrowUp && player.velocityY === 0 && !playerOnBottom){
+                    player.velocityY -= 18
+                }
             }
         }
+        
 
         if (sonic.facing === "left"){
             sonic.animation.src = "images/sonic-left.png"
@@ -1126,6 +1218,7 @@ function gameLoop(){
                     collide(sonic, sprites[i]);
                 }
             }
+            
             createVelocity(sprites[i]);
         }
 
@@ -1221,7 +1314,17 @@ function giveGravity(sprite){
     }
     if(!isTouchingGround(sprite)){
         if(sprite.velocityY < terminalVelocity){
-            sprite.velocityY += gravity;
+            if(sprite.mode !== "ball"){
+                if(sprite.mode !== "flying"){
+                    sprite.velocityY += gravity;
+                }
+                else{
+                    if(sprite.velocityY <= 10){
+                        sprite.velocityY += gravity;
+                    }
+                }
+            }
+            
         }
             
         sprite.isTouchingGround = false;
@@ -1276,7 +1379,7 @@ function giveMovement(sprite, left, right, down){
       }
 }
 function jump(sprite){
-    if(sprite.mode !== "flying"){
+    if(sprite.mode === "default"){
         if(sprite === player){
             keyWasPressed.ArrowUp = true;
         }
@@ -1290,11 +1393,50 @@ function jump(sprite){
             playAudio(jumpSound);
         }
     }
-    else{
-        if(sprite.velocityY > -10){
-            sprite.velocityY = -10;
-            sprite.hasGravity = false;
-            console.log("hi")
+    else if(sprite.mode === "flying"){
+        sprite.hasGravity = false;
+        if(sprite.velocityY >= -10 && sprite.velocityY < 0){
+            sprite.velocityY -= 2;
+            
+            
+        }
+        else if(sprite.velocityY >= 0){
+                console.log("hi")
+                sprite.velocityY -= 18;
+        }
+       
+    }
+    else if(sprite.mode === "ball"){
+        //sprite.hasGravity = false;
+        for(let i=0; i<grounds.length; i++){
+            if(sprite.isTouching[grounds[i]]){
+                if(Math.abs(player.y + player.height - grounds[i].y) < 4 ){
+                    if(sprite.y < grounds[i].y){
+                        sprite.velocityY -= 1;
+                    }
+                }
+                
+                if(Math.abs(grounds[i].y + grounds[i].height - sprite.y) < 4){
+                    console.log("HI")
+                    if(sprite.y > grounds[i].y){
+                        sprite.velocityY += 1;
+                    }
+                    console.log(i)
+                }
+            }
+            else{
+                sprite.velocityY *= -1
+            }
+        }
+    }
+    else if(sprite.mode === "wave"){
+        sprite.hasGravity = false
+    
+        if(sprite.velocityY >= 0){
+            sprite.velocityY = -10
+        }
+        else{
+            sprite.velocityY = 10
         }
     }
 }
@@ -1426,6 +1568,8 @@ function isOnGroundOG(sprite){
 function collide(sprite1, sprite2){
     if(!sprite1.deleted && !sprite2.deleted){
         if(isTouching(sprite1, sprite2)){
+            sprite1.isTouching[sprite2] = true;
+            sprite2.isTouching[sprite1] = true;
 
             overlapX = Math.min(
                 sprite1.x + sprite1.width - sprite2.x, // right of sprite1 colliding w/ left of sprite2
