@@ -5,12 +5,13 @@ let jumpForce = 25;
 let gravity = 1.7;
 let cameraSpeed = 0.2; //0.3
 let fallHeight = 700;
+let skyFallHeight = -5000;
 let bulletSpeed = 20;
 let cameraBorder = 150;
-let zoom = 1; //1.3
+let zoom = 1; //1.3 or 1
 let multiplayer = false;
 let enemyChance = 1;
-let level = 1  ;
+let level = 1;
 let muted = false;
 let startScreen = true;
 let machineGuns = true;
@@ -23,5 +24,5 @@ let cameraOffsetY = 0;
 let terminalVelocity = 200;
 if(layout){
     zoom = 0.3;
-    startScreen = false;
+    startScreen = false;w
 }

@@ -185,6 +185,7 @@ function createSprite(posX, posY, width, height, type = ""){
         "velocityY" : 0,
         "jumpCount" : 2,
         "facing": "right", 
+        "facingY" : "down",
         "deleted": false,
         "takesDamage": false,
         "hasGravity" : false,
@@ -431,8 +432,11 @@ function portalLoop(sprite){
         }
     }
     if(isTouching(sprite, sonic)){
-        sonic.mode = "flying";
-        playAudio(ouch)
+        console.log(sprite.mode)
+        if(sonic.mode !== sprite.mode){
+            playAudio(healthGain);
+            sonic.mode = sprite.mode;
+        }
     }
 }
 
@@ -988,7 +992,7 @@ function goFullscreen() {
 
 function updateCamera(){
     //Decide whether to use split screen
-    if((isTouchingGround(player) && isTouchingGround(sonic)) || isTouching(player, sonic)){ //Only disable splitScreen if players are touching ground to prevent screen from jittering when player jumps
+    //if((isTouchingGround(player) && isTouchingGround(sonic)) || isTouching(player, sonic)){ //Only disable splitScreen if players are touching ground to prevent screen from jittering when player jumps
         if(Math.abs(player.x - sonic.x) < camera.width - 100 && Math.abs(player.y - sonic.y) < camera.height -100){ //If the distance between players is closer than screen
             if(splitScreen){
                 splitScreen = false;
@@ -1009,7 +1013,7 @@ function updateCamera(){
                 playerSide = "right";
             }
         }
-    }
+    //}
 
     //Update the camera
     if(player.deleted && sonic.deleted){ //Game over logic
@@ -1149,6 +1153,15 @@ function gameLoop(){
             else{
                 player.animation.src = "images/braden-head-left.png"
             }
+
+            if(!isTouchingGround(player) && !keys.ArrowUp){
+                if(player.facingY === "down"){
+                    player.velocityY ++;
+                }
+                else{
+                    player.velocityY --;
+                }
+            }
             player.width = 100;
             player.height = 100;
             player.spriteSheet.used = false;
@@ -1177,6 +1190,7 @@ function gameLoop(){
                     player.velocityY -= 18
                 }
             }
+            
         }
         
 
@@ -1284,11 +1298,11 @@ function gameLoop(){
         drawSprites();
 
         //if the player falls off the map
-        if(player.y > fallHeight){
+        if(player.y > fallHeight || player.y < skyFallHeight){
             player.x = 200;
             player.y = 100;
         }
-        if(sonic.y > fallHeight){
+        if(sonic.y > fallHeight || sonic.y < skyFallHeight){
             sonic.x = 200;
             sonic.y = 100;
         }
@@ -1359,24 +1373,30 @@ function giveGravity(sprite){
 // }
 
 function giveMovement(sprite, left, right, down){
-    if(keys[left] && sprite.velocityX > -1 * maxSpeed){
-        sprite.velocityX -= acceleration;
-        sprite.facing = "left";
+    if(sprite.mode !== "ball"){
+        if(keys[left] && sprite.velocityX > -1 * maxSpeed){
+            sprite.velocityX -= acceleration;
+            sprite.facing = "left";
+        }
+        else if(sprite.velocityX < 0){
+            sprite.velocityX += friction;
+        }
+    
+        if(keys[right] && sprite.velocityX < maxSpeed){
+            sprite.velocityX += acceleration;
+            sprite.facing = "right";
+        }
+        else if(sprite.velocityX > 0){
+            sprite.velocityX -= friction;
+        }
+        if (Math.abs(sprite.velocityX) < 1){
+            sprite.velocityX = 0;
+          }
     }
-    else if(sprite.velocityX < 0){
-        sprite.velocityX += friction;
+    else{
+        sprite.velocityX = maxSpeed;
     }
-
-    if(keys[right] && sprite.velocityX < maxSpeed){
-        sprite.velocityX += acceleration;
-        sprite.facing = "right";
-    }
-    else if(sprite.velocityX > 0){
-        sprite.velocityX -= friction;
-    }
-    if (Math.abs(sprite.velocityX) < 1){
-        sprite.velocityX = 0;
-      }
+   
 }
 function jump(sprite){
     if(sprite.mode === "default"){
@@ -1386,7 +1406,7 @@ function jump(sprite){
         else if(sprite === sonic){
             keyWasPressed.w = true;
         }
-        if(sprite.jumpCount < 3){
+        if(sprite.jumpCount <3){
             sprite.y -= 2;
             sprite.velocityY = -1 * jumpForce;
             sprite.jumpCount++;
@@ -1413,6 +1433,7 @@ function jump(sprite){
                 if(Math.abs(player.y + player.height - grounds[i].y) < 4 ){
                     if(sprite.y < grounds[i].y){
                         sprite.velocityY -= 1;
+                        sprite.facingY = "up"
                     }
                 }
                 
@@ -1420,6 +1441,7 @@ function jump(sprite){
                     console.log("HI")
                     if(sprite.y > grounds[i].y){
                         sprite.velocityY += 1;
+                        sprite.facingY = "down"
                     }
                     console.log(i)
                 }
