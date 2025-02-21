@@ -1156,10 +1156,10 @@ function gameLoop(){
 
             if(!isTouchingGround(player) && !keys.ArrowUp){
                 if(player.facingY === "down"){
-                    player.velocityY ++;
+                    player.velocityY += ballForce;
                 }
                 else{
-                    player.velocityY --;
+                    player.velocityY -= ballForce;
                 }
             }
             player.width = 100;
@@ -1295,6 +1295,7 @@ function gameLoop(){
             }
             
         }
+        console.log(player.velocityY)
         drawSprites();
 
         //if the player falls off the map
@@ -1308,6 +1309,7 @@ function gameLoop(){
         }
     }
     //console.timeEnd("gameLoop");
+    console.log(player.velocityY)
 }
 
 
@@ -1429,10 +1431,10 @@ function jump(sprite){
     else if(sprite.mode === "ball"){
         //sprite.hasGravity = false;
         for(let i=0; i<grounds.length; i++){
-            if(sprite.isTouching[grounds[i]]){
+            if(isTouching(player, grounds[i], 5)){
                 if(Math.abs(player.y + player.height - grounds[i].y) < 4 ){
                     if(sprite.y < grounds[i].y){
-                        sprite.velocityY -= 1;
+                        sprite.velocityY -= ballForce;
                         sprite.facingY = "up"
                     }
                 }
@@ -1440,15 +1442,15 @@ function jump(sprite){
                 if(Math.abs(grounds[i].y + grounds[i].height - sprite.y) < 4){
                     console.log("HI")
                     if(sprite.y > grounds[i].y){
-                        sprite.velocityY += 1;
+                        sprite.velocityY += ballForce;
                         sprite.facingY = "down"
                     }
                     console.log(i)
                 }
             }
-            else{
-                sprite.velocityY *= -1
-            }
+            // else{
+            //     sprite.velocityY *= -1
+            // }
         }
     }
     else if(sprite.mode === "wave"){
@@ -1482,13 +1484,13 @@ function shootBullet(sprite){
 
 //Collision Handling
 
-function isTouching(sprite1, sprite2) {
+function isTouching(sprite1, sprite2, tolerance = 0) {
     if(sprite1.deleted === false && sprite2.deleted === false) {
         if (
-            sprite1.x < sprite2.x + sprite2.width &&
-            sprite1.x + sprite1.width > sprite2.x &&
-            sprite1.y < sprite2.y + sprite2.height &&
-            sprite1.y + sprite1.height > sprite2.y
+            sprite1.x < sprite2.x + sprite2.width + tolerance &&
+            sprite1.x + sprite1.width + tolerance > sprite2.x &&
+            sprite1.y < sprite2.y + sprite2.height + tolerance &&
+            sprite1.y + sprite1.height + tolerance > sprite2.y
         ) {return true;}
         else {return false;}
     }
