@@ -8,7 +8,11 @@ let fallHeight = 700;
 let skyFallHeight = -5000;
 let bulletSpeed = 20;
 let cameraBorder = 150;
+
+let smallZoom = 0.6
 let zoom = 1; //1.3 or 1
+let largeZoom = 1;
+
 let multiplayer = false;
 let enemyChance = 1;
 let level = 1;

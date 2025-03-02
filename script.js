@@ -43,14 +43,15 @@ const imgCache = {
     "flyerRight" : new Image(),
     "flyerJump" : new Image(),
     "flyerJumpRight" : new Image(),
+    "player-sprite-sheet" : new Image(),
     
 }
 imgCache.goomba.src = "images/enemy.webp";
 imgCache.robot.src = "images/enemy2.png";
 imgCache.flyer.src = "images/frog-left.png";
-imgCache["flyerRight"].src = "images/frog.png";
-imgCache["flyerJump"].src = "images/frog-jumping-left.png";
-imgCache["flyerJumpRight"].src = "images/frog-jumping.png"
+imgCache.flyerRight.src = "images/frog.png";
+imgCache.flyerJump.src = "images/frog-jumping-left.png";
+imgCache.flyerJumpRight.src = "images/frog-jumping.png"
 const buttons = new Map([
     ["jumpButton", "ArrowUp"],
     ["leftButton", "ArrowLeft"],
@@ -175,7 +176,7 @@ muteButton.addEventListener("click", function(){
 let sprites = [];
 
 function createSprite(posX, posY, width, height, type = ""){
-    return {
+    let newSprite =  {
         "x" : posX,
         "y" : posY,
         "width" : width, 
@@ -224,16 +225,8 @@ function createSprite(posX, posY, width, height, type = ""){
         },
         "enemy" : ""
     };
-}
-
-//create groups
-function createSpriteGroup(list, animationSource){
-    for(i=0; i < list.length; i++){
-        sprites.push(list[i])
-        if(animationSource !== undefined){
-            list[i].animation.src = animationSource;
-        }
-    }
+    sprites.push(newSprite);
+    return newSprite;
 }
 
 //Sprite animation
@@ -275,8 +268,6 @@ let flyerCount = 0;
 let enemyCount = 0;
 
 function setSprites(){
-
-
     music.src = "audio/music" + level + ".mp3"
     if(!muted){
         music.play();
@@ -297,12 +288,9 @@ function setSprites(){
 
     sky = createSprite(0,0, canvas.width, canvas.height)
     sky.animation.src = skyData.src;
-
-    sprites.push(sky);
     
     sky2 = createSprite(0,0,canvas2.width, canvas2.height)
     sky2.animation.src = skyData.src;
-    sprites.push(sky2);
 
     sky.animation.onload = function(){
         skyRatio = sky.animation.width / sky.animation.height;
@@ -310,22 +298,6 @@ function setSprites(){
         sky2.width = canvas2.height * skyRatio;
         resizeCanvas()
     }
-
-    let distantObject = createSprite(0, -300, 3000, 600);
-    distantObject.distanceX = 0.7;
-    distantObject.animation.src = "images/mountain.webp"
-    //sprites.push(distantObject);
-
-    let tree2 = createSprite(670, 150, 100, 100)
-    tree2.animation.src = "images/tree5.png";
-    tree2.distanceX = 0.83;
-    //sprites.push(tree2);
-
-
-    let tree = createSprite(800, 100, 150, 150)
-    tree.animation.src = "images/tree.png";
-    tree.distanceX = 0.86;
-    //sprites.push(tree);
 
     //portals
     portals = [];
@@ -336,7 +308,6 @@ function setSprites(){
 
     //Players
     player = createSprite(150, 150, 50, 100, "player");
-    sprites.push(player);
     player.animation.src = "images/braden-sprite-sheet.png";
     playerLives.innerText = "Lives: 3"
 
@@ -355,7 +326,6 @@ function setSprites(){
     sonic.animation.src = "images/sonic.png"
     sonic.takesDamage = true;
     sonic.hasGravity = true;
-    sprites.push(sonic);
     sonicLives.innerText = "Lives: 3"
 
     //grounds
@@ -368,8 +338,6 @@ function setSprites(){
     for(let i=0; i<groundData.length; i++){
         createGround(groundData[i][0], groundData[i][1], groundData[i][2], groundData[i][3])
     }
-    
-    createSpriteGroup(grounds, "images/ground.png");
 
     //spikes
     spikes = [];
@@ -395,31 +363,21 @@ function setSprites(){
     let endPointData = levels[level].endPoint
     endPoint = createSprite(endPointData[0], endPointData[1], endPointData[2], endPointData[3]);
     endPoint.animation.src = "images/santas-sleigh.png";
-    sprites.push(endPoint);
 }
 
-function createGround(x, y, width, height){
-    let w = width;
-    let h = height;
-    if(w === undefined){
-        w = 100;
-    }
-    if(h === undefined){
-        h = 75;
-    }
-    let newGround = (createSprite(x, y, w, h));
+function createGround(x, y, width = 100, height = 75){
+    let newGround = (createSprite(x, y, width, height));
     newGround.animation.src = "images/ground.png"
     newGround.type = "ground"
-    sprites.push(newGround);
     grounds.push(newGround);
 }
 
+//Portals
 function createPortal(x, y, width, height, mode = "flying"){
     let newPortal = createSprite(x,y,width,height);
     newPortal.animation.src = "images/portal-red.png";
     newPortal.mode = mode
     newPortal.type = "portal"
-    sprites.push(newPortal);
     portals.push(newPortal);
 }
 
@@ -440,6 +398,7 @@ function portalLoop(sprite){
     }
 }
 
+//spikes
 function createSpike(x, y, direction = "up", width = 50, height = 50){
     let newSpike = createSprite(x, y, width, height, "spike");
     if(direction === "up"){
@@ -449,13 +408,110 @@ function createSpike(x, y, direction = "up", width = 50, height = 50){
         newSpike.animation.src = "images/spike3-down.png";
         newSpike.spike.direction = "down"
     }
-    sprites.push(newSpike);
     spikes.push(newSpike);
 }
 
-const enemySkins = {
-    "goomba" : "images/enemy.webp",
-    "robot" : "images/enemy2.png"
+function spikeLoop(spike){
+    let spikeCenter = spike.x + spike.width / 2;
+    if(isTouching(spike, player)){
+        if(spike.spike.direction === "up"){
+            if(player.x < spikeCenter && player.x + player.width > spikeCenter){
+                player.lives --;
+                playAudio(ouch);
+                playerLives.innerText = "Lives: " + player.lives;
+            }
+            else{
+                player.velocityY += gravity;
+            }
+            if(player.x > spike.x){
+                if(!keys.ArrowUp){
+                    player.y = (spike.y - player.height) + (player.x - spike.x);
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = acceleration * 3;
+            }
+            else {
+                if(!keys.ArrowUp){
+                    player.y = (spike.y - player.height) + Math.abs(player.x - spike.x) //+ player.width / 2;
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = -acceleration * 3;
+    
+            }
+        }
+        else{
+            if(player.x < spikeCenter && player.x + player.width > spikeCenter){
+                player.lives --;
+                playAudio(ouch);
+                playerLives.innerText = "Lives: " + player.lives;
+            }
+            else{
+                player.velocityY -= gravity;
+            }
+            if(player.x > spike.x){
+                if(!keys.ArrowUp){
+                    player.y = spike.y //- (player.x - spike.x);
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = acceleration * 3;
+            }
+            else {
+                if(!keys.ArrowUp){
+                    player.y = spike.y// - Math.abs(player.x - spike.x) //+ player.width / 2;
+                    player.velocityY = 0;
+                }
+                if(player.velocityY > 0){
+                    
+                }
+                player.velocityX = -acceleration * 3;
+    
+            }
+        }
+        
+    }
+
+    if(isTouching(spike, sonic)){
+        if(sonic.x < spikeCenter && sonic.x + sonic.width > spikeCenter){
+            sonic.lives --;
+            playAudio(ouch);
+            sonicLives.innerText = "Lives: " + sonic.lives;
+        }
+        else{
+            sonic.velocityY += gravity;
+        }
+        if(sonic.x > spike.x){
+            if(!keys.w){
+                sonic.y = (spike.y - sonic.height) + (sonic.x - spike.x);
+            }
+            if(sonic.velocityY > 0){
+                sonic.velocityY = 0;
+            }
+            sonic.velocityX += acceleration * 2;
+        }
+        else {
+            if(!keys.w){
+                sonic.y = (spike.y - sonic.height) + Math.abs(sonic.x - spike.x) + sonic.width / 2;
+            }
+            if(sonic.velocityY > 0){
+                sonic.velocityY = 0;
+            }
+            sonic.velocityX -= acceleration * 2;
+
+        }
+    }
+    for(let i=0; i<enemies.length; i++){
+        collide(enemies[i], spike);
+    }
+    
 }
 
 //enemies
@@ -468,10 +524,7 @@ function createEnemy(x, y, width = 50, height = 50, enemyType = "goomba"){
         newEnemy.hasGravity = true;
     }
     
-    // if(enemyType === "goomba"){
-        newEnemy.velocityX  = enemySpeed;
-    // }
-    sprites.push(newEnemy);
+    newEnemy.velocityX  = enemySpeed;
     if(newEnemy.width <= 50){
         newEnemy.lives = 1;
     }
@@ -648,12 +701,9 @@ function enemyLoop(sprite){
         }
         if(thresholdY > player.height) {
             if(player.y - player.height < sprite.y){
-                // sprite.velocityY -= acceleration;
-                 //sprite.velocityY = -3;
                  sprite.velocityY = -3;
              }
             else if(player.y > sprite.y){
-                //sprite.velocityY += acceleration;
                 sprite.velocityY = 3;
             }
             
@@ -662,9 +712,6 @@ function enemyLoop(sprite){
             if(getRandomNumber(0,1000) === 1){
                 sprite.velocityY = -1 * sprite.velocityY
             }
-            // if(getRandomNumber(0,100) === 1){
-            //     sprite.velocityY = 3
-            // }
         }
         if(sprite.y + sprite.height > 250){
             sprite.velocityY = -1 * sprite.velocityY
@@ -704,121 +751,17 @@ function bulletLoop(bullet){
     }
 }
 
-function spikeLoop(spike){
-    let spikeCenter = spike.x + spike.width / 2;
-    if(isTouching(spike, player)){
-        if(spike.spike.direction === "up"){
-            if(player.x < spikeCenter && player.x + player.width > spikeCenter){
-                player.lives --;
-                playAudio(ouch);
-                playerLives.innerText = "Lives: " + player.lives;
-            }
-            else{
-                player.velocityY += gravity;
-            }
-            if(player.x > spike.x){
-                if(!keys.ArrowUp){
-                    player.y = (spike.y - player.height) + (player.x - spike.x);
-                    player.velocityY = 0;
-                }
-                if(player.velocityY > 0){
-                    
-                }
-                player.velocityX = acceleration * 3;
-            }
-            else {
-                if(!keys.ArrowUp){
-                    player.y = (spike.y - player.height) + Math.abs(player.x - spike.x) //+ player.width / 2;
-                    player.velocityY = 0;
-                }
-                if(player.velocityY > 0){
-                    
-                }
-                player.velocityX = -acceleration * 3;
-    
-            }
-        }
-        else{
-            if(player.x < spikeCenter && player.x + player.width > spikeCenter){
-                player.lives --;
-                playAudio(ouch);
-                playerLives.innerText = "Lives: " + player.lives;
-            }
-            else{
-                player.velocityY -= gravity;
-            }
-            if(player.x > spike.x){
-                if(!keys.ArrowUp){
-                    player.y = spike.y //- (player.x - spike.x);
-                    player.velocityY = 0;
-                }
-                if(player.velocityY > 0){
-                    
-                }
-                player.velocityX = acceleration * 3;
-            }
-            else {
-                if(!keys.ArrowUp){
-                    player.y = spike.y// - Math.abs(player.x - spike.x) //+ player.width / 2;
-                    player.velocityY = 0;
-                }
-                if(player.velocityY > 0){
-                    
-                }
-                player.velocityX = -acceleration * 3;
-    
-            }
-        }
-        
-    }
-
-    if(isTouching(spike, sonic)){
-        if(sonic.x < spikeCenter && sonic.x + sonic.width > spikeCenter){
-            sonic.lives --;
-            playAudio(ouch);
-            sonicLives.innerText = "Lives: " + sonic.lives;
-        }
-        else{
-            sonic.velocityY += gravity;
-        }
-        if(sonic.x > spike.x){
-            if(!keys.w){
-                sonic.y = (spike.y - sonic.height) + (sonic.x - spike.x);
-            }
-            if(sonic.velocityY > 0){
-                sonic.velocityY = 0;
-            }
-            sonic.velocityX += acceleration * 2;
-        }
-        else {
-            if(!keys.w){
-                sonic.y = (spike.y - sonic.height) + Math.abs(sonic.x - spike.x) + sonic.width / 2;
-            }
-            if(sonic.velocityY > 0){
-                sonic.velocityY = 0;
-            }
-            sonic.velocityX -= acceleration * 2;
-
-        }
-    }
-    for(let i=0; i<enemies.length; i++){
-        collide(enemies[i], spike);
-    }
-    
-}
-
 let keys = {};
-
 let keyWasPressed = {}
 
 //To check if key down and/or key went down
 window.addEventListener("keydown", (event) => {
     if(event.key === "ArrowUp" && !keyWasPressed.ArrowUp){
         
-        jump(player)
+        jump(player);
     }
     if(event.key === "w" && !keyWasPressed.w){
-        jump(sonic)
+        jump(sonic);
     }
     if(event.key === "ArrowDown" && !keyWasPressed.ArrowDown){
         if(!machineGuns){
@@ -832,10 +775,9 @@ window.addEventListener("keydown", (event) => {
         }
         shootBullet(sonic);
     }
-
     keys[event.key] = true;
-
 });
+
 window.addEventListener("keyup", function(event){
     if(event.key === "ArrowUp"){
         keyWasPressed.ArrowUp = false;
@@ -885,23 +827,6 @@ function lerp(start, end, t){
     return start + (end - start) * t;
 }
 
-//used if you want the camera to only be pushed when the player goes beyond a certain threshold
-function pushCamera(sprite){ //if the player is past the camera border, push the camera
-    //left/right
-    if(sprite.x + sprite.width > targetX + (camera.width - cameraBorder) || sprite.x < targetX + cameraBorder){
-        targetX += sprite.velocityX;
-    }
-    //up/down
-    if(sprite.y + sprite.height > targetY + (camera.height - cameraBorder) || sprite.y < targetY + cameraBorder){
-        if((sprite.velocityY === 1.7) && isTouchingGround(sprite)){
-            targetY += sprite.velocityY - 1.7;
-        }
-        else{
-            targetY += sprite.velocityY;
-        }
-    }
-}
-
 if(multiplayer){
     let targetX = (player.x + sonic.x) / 2 - camera.width / 2;  // Center the camera on the player (horizontal)
     let targetY = (player.y + sonic.y) / 2 - camera.height / 2 ; // Center the camera on the player (vertical)  
@@ -935,7 +860,12 @@ function updateTransition(){
 
 //Update the canvas width and height to maintain a proper aspect ratio
 function resizeCanvas(){
-    
+    if(window.innerWidth < 800){
+        zoom = smallZoom;
+    }
+    else{
+        zoom = largeZoom;
+    }
     canvas.width = window.innerWidth / zoom;
     canvas.height = window.innerHeight / zoom;
 
@@ -1347,33 +1277,6 @@ function giveGravity(sprite){
     }
 }
 
-
-// function giveGravity(sprite){
-//     sprite.isTouchingGround = false;
-//     for(i=0; i < grounds.length; i++){
-//         if(isTouching(sprite, grounds[i])){
-//             if(Math.abs(sprite.y + sprite.height - grounds[i].y) < 5){
-//                 collide(sprite, grounds[i]);
-//             }
-//             else{
-//                 if(sprite === player){
-//                     console.log("yay!" + Math.abs(sprite.y + sprite.height - grounds[i].y) + " " + i)
-//                 }
-//                 sprite.velocityY = Math.abs(sprite.velocityY) * -1 * 0.8 //* (grounds[i].bounciness + sprite.bounciness)
-//             }
-                
-            
-//             sprite.jumpCount = 0;
-//             sprite.isTouchingGround = true;
-//         }
-//     }
-//     //console.log(player.isTouchingGround)
-//     if(!sprite.isTouchingGround){
-//         sprite.velocityY += gravity;
-//         sprite.isTouchingGround = false;
-//     }
-// }
-
 function giveMovement(sprite, left, right, down){
     if(sprite.mode !== "ball"){
         if(keys[left] && sprite.velocityX > -1 * maxSpeed){
@@ -1431,7 +1334,7 @@ function jump(sprite){
     else if(sprite.mode === "ball"){
         //sprite.hasGravity = false;
         for(let i=0; i<grounds.length; i++){
-            if(isTouching(player, grounds[i], 5)){
+            if(isTouching(player, grounds[i], 5) && !keyWasPressed.ArrowUp){
                 if(Math.abs(player.y + player.height - grounds[i].y) < 4 ){
                     if(sprite.y < grounds[i].y){
                         sprite.velocityY -= ballForce;
@@ -1440,7 +1343,7 @@ function jump(sprite){
                 }
                 
                 if(Math.abs(grounds[i].y + grounds[i].height - sprite.y) < 4){
-                    console.log("HI")
+                    //console.log("HI")
                     if(sprite.y > grounds[i].y){
                         sprite.velocityY += ballForce;
                         sprite.facingY = "down"
@@ -1476,14 +1379,12 @@ function shootBullet(sprite){
             newBullet.velocityX = -1 * bulletSpeed;
         }
             newBullet.bullet.firedFrom = sprite
-        sprites.push(newBullet)
         bullets.push(newBullet)
         playAudio(shootSound)
     }  
 }
 
 //Collision Handling
-
 function isTouching(sprite1, sprite2, tolerance = 0) {
     if(sprite1.deleted === false && sprite2.deleted === false) {
         if (
@@ -1495,16 +1396,6 @@ function isTouching(sprite1, sprite2, tolerance = 0) {
         else {return false;}
     }
     return false
-}
-
-function isNextToOG(sprite1, sprite2,) {
-    if (
-       sprite1.x + sprite1.width / 2 < sprite2.x + sprite2.width &&
-       sprite1.x + sprite1.width / 2 > sprite2.x &&
-       sprite1.y + sprite1.height === sprite2.y
-   ) {return true;}
-   else {return false;
-   }
 }
 
 function isNextTo(sprite1, sprite2, toleranceX = 0, useMidPoint = true, useY = true, toleranceY = 1) {
@@ -1571,23 +1462,6 @@ function isTouchingGround(sprite){
     }
     return false
 }
-
-function isOnGroundOG(sprite){
-    for(i=0; i<grounds.length; i++){
-        const tolerance = 1;
-        if(
-            sprite.x < grounds[i].x + grounds[i].width &&
-            sprite.x + sprite.width > grounds[i].x &&
-            Math.abs(sprite.y + sprite.height - grounds[i].y) < tolerance
-            // sprite.y + sprite.height === grounds[i]
-        ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
 
 function collide(sprite1, sprite2){
     if(!sprite1.deleted && !sprite2.deleted){
