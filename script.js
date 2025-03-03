@@ -43,7 +43,15 @@ const imgCache = {
     "flyerRight" : new Image(),
     "flyerJump" : new Image(),
     "flyerJumpRight" : new Image(),
+
     "player-sprite-sheet" : new Image(),
+    "braden-on-ship" : new Image(),
+    "braden-on-ship-left" : new Image(),
+    "braden-head" : new Image(),
+    "braden-head-left" : new Image(),
+
+    "bullet" : new Image(),
+
     
 }
 imgCache.goomba.src = "images/enemy.webp";
@@ -52,6 +60,15 @@ imgCache.flyer.src = "images/frog-left.png";
 imgCache.flyerRight.src = "images/frog.png";
 imgCache.flyerJump.src = "images/frog-jumping-left.png";
 imgCache.flyerJumpRight.src = "images/frog-jumping.png"
+
+imgCache["player-sprite-sheet"].src = "images/braden-sprite-sheet.png";
+imgCache["braden-on-ship"].src = "images/braden-on-ship.png";
+imgCache["braden-on-ship-left"].src = "images/braden-on-ship-left.png";
+imgCache["braden-head"].src = "images/braden-head.png";
+imgCache["braden-head-left"].src = "images/braden-head-left.png";
+
+imgCache["bullet"].src = "images/bullet.png";
+
 const buttons = new Map([
     ["jumpButton", "ArrowUp"],
     ["leftButton", "ArrowLeft"],
@@ -308,7 +325,7 @@ function setSprites(){
 
     //Players
     player = createSprite(150, 150, 50, 100, "player");
-    player.animation.src = "images/braden-sprite-sheet.png";
+    player.animation = imgCache["player-sprite-sheet"];
     playerLives.innerText = "Lives: 3"
 
     player.spriteSheet.used = true;
@@ -1054,7 +1071,7 @@ function gameLoop(){
             player.spriteSheet.used = true;
             player.width = 50;
             player.height = 100;
-            player.animation.src = "images/braden-sprite-sheet.png"
+            player.animation = imgCache["player-sprite-sheet"];
             if (player.facing === "left"){
                 player.spriteSheet.y = 1;
                 if(Math.abs(player.velocityX) > 1){
@@ -1078,10 +1095,10 @@ function gameLoop(){
         else if(player.mode === "ball"){
             
             if(player.facing === "right"){
-                player.animation.src = "images/braden-head.png"
+                player.animation = imgCache["braden-head"]
             }
             else{
-                player.animation.src = "images/braden-head-left.png"
+                player.animation = imgCache["braden-head-left"]
             }
 
             if(!isTouchingGround(player) && !keys.ArrowUp){
@@ -1098,10 +1115,10 @@ function gameLoop(){
         } 
         else{
             if(player.facing === "left"){
-                player.animation.src = "images/braden-on-ship-left.png";
+                player.animation = imgCache["braden-on-ship-left"];
             }
             else{
-                player.animation.src = "images/braden-on-ship.png";
+                player.animation = imgCache["braden-on-ship"];
             }
             player.spriteSheet.used = false;
             player.width = 100;
@@ -1371,7 +1388,7 @@ function jump(sprite){
 function shootBullet(sprite){
     if(!sprite.deleted){
         let newBullet = (createSprite(sprite.x, sprite.y + sprite.height / 1.5, 10, 10, "bullet"))
-        newBullet.animation.src = "images/bullet.png";
+        newBullet.animation = imgCache.bullet;
         if(sprite.facing === "right"){
             newBullet.velocityX = bulletSpeed;
         }
