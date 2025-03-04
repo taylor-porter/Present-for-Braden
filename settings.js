@@ -26,7 +26,8 @@ let fps = 45;
 let gridSize = 400;
 let cameraOffsetY = 0;
 let terminalVelocity = 200;
-let ballForce = 3;
+
+let ballForce = 2.5;
 if(layout){
     zoom = 0.3;
     startScreen = false;w

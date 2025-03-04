@@ -49,6 +49,9 @@ const imgCache = {
     "braden-on-ship-left" : new Image(),
     "braden-head" : new Image(),
     "braden-head-left" : new Image(),
+    "player-on-yoshi-sprite-sheet" : new Image(),
+    "player-on-clown-car" : new Image(),
+    "player-on-clown-car-left" : new Image(),
 
     "bullet" : new Image(),
 
@@ -66,6 +69,9 @@ imgCache["braden-on-ship"].src = "images/braden-on-ship.png";
 imgCache["braden-on-ship-left"].src = "images/braden-on-ship-left.png";
 imgCache["braden-head"].src = "images/braden-head.png";
 imgCache["braden-head-left"].src = "images/braden-head-left.png";
+imgCache["player-on-yoshi-sprite-sheet"].src = "images/player-on-yoshi-sprite-sheet.png";
+imgCache["player-on-clown-car"].src = "images/player-on-clown-car.png";
+imgCache["player-on-clown-car-left"].src = "images/player-on-clown-car-left.png";
 
 imgCache["bullet"].src = "images/bullet.png";
 
@@ -90,7 +96,6 @@ document.addEventListener("mousedown", event => {
 })
 document.addEventListener("mouseup", event => {
     setButton(event.target.parentElement, false)
-    console.log(event.target)
 })
 document.addEventListener("touchstart", event => {
     event.preventDefault();
@@ -211,6 +216,10 @@ function createSprite(posX, posY, width, height, type = ""){
         "lives" : 3,
         "visible" : true,
         "type" : type,
+        "maxSpeed": maxSpeed,
+        "jumpForce": jumpForce,
+        "gravity" : gravity,
+        "onYoshi" : false,
         "distanceX" : 1, //A value from 1 to 0 - determines how much the sprite's position changes during camera movement
         "distanceY" : 1, //A smaller value means the object moves slower than the camera, giving a feeling of distance
         "touchingGround" : false,
@@ -220,27 +229,22 @@ function createSprite(posX, posY, width, height, type = ""){
         "spike" : {
             "direction" : "up"
         },
-        "boundingBox" : {
-            "used" : false,
-            "type" : "rect",
-            "width" : null,
-            "height" : null,
-            "triangle" : [],
-        },
         "spriteSheet" : { 
             "used" : false,
             "x" : 0, 
             "y" : 0,
             "width" : 0,
             "height" : 0,
-            "margin" : 0,
+            "offsetX" : 0,
+            "offsetY" : 0,
             "currentFrame" : 0,
             "frameRate" : 0,
         },
         "bullet" : {
             "firedFrom" : ""
         },
-        "enemy" : ""
+        "enemy" : "",
+        "powerUp" : {},
     };
     sprites.push(newSprite);
     return newSprite;
@@ -323,6 +327,19 @@ function setSprites(){
         createPortal(portalData[i][0], portalData[i][1], portalData[i][2], portalData[i][3], portalData[i][4])
     }
 
+    //power-ups
+    let powerUpData = levels[level].powerUps;
+    for(let i=0; i<powerUpData.length; i++){
+        createPowerUp(powerUpData[i][0], powerUpData[i][1], powerUpData[i][2], powerUpData[i][3]);
+    }
+
+    //yoshi
+    let yoshiData = levels[level].yoshi;
+    for(let i=0; i<yoshiData.length; i++){
+        createYoshi(yoshiData[i][0], yoshiData[i][1]);
+    }
+       
+
     //Players
     player = createSprite(150, 150, 50, 100, "player");
     player.animation = imgCache["player-sprite-sheet"];
@@ -333,7 +350,6 @@ function setSprites(){
     player.spriteSheet.y = 0;
     player.spriteSheet.width = 300;
     player.spriteSheet.height = 823;
-    player.spriteSheet.margin = 0;
     player.spriteSheet.frameRate = 5;
     player.takesDamage = true;
     player.hasGravity = true;
@@ -392,7 +408,7 @@ function createGround(x, y, width = 100, height = 75){
 //Portals
 function createPortal(x, y, width, height, mode = "flying"){
     let newPortal = createSprite(x,y,width,height);
-    newPortal.animation.src = "images/portal-red.png";
+    newPortal.animation.src = "images/powerUp.png";
     newPortal.mode = mode
     newPortal.type = "portal"
     portals.push(newPortal);
@@ -400,20 +416,69 @@ function createPortal(x, y, width, height, mode = "flying"){
 
 function portalLoop(sprite){
     if(isTouching(sprite, player)){
-        console.log(sprite.mode)
         if(player.mode !== sprite.mode){
             playAudio(healthGain);
             player.mode = sprite.mode;
         }
     }
     if(isTouching(sprite, sonic)){
-        console.log(sprite.mode)
         if(sonic.mode !== sprite.mode){
             playAudio(healthGain);
             sonic.mode = sprite.mode;
         }
     }
 }
+
+//power-ups
+function createPowerUp(x, y, stats = [], conditions = []){
+    let newPowerUp = createSprite(x, y, 50, 50, "powerUp");
+    newPowerUp.animation.src = "images/powerUp.png";
+    newPowerUp.powerUp = {"stats" : stats, "conditions" : conditions};    
+    console.log(stats)
+}
+function powerUpLoop(sprite){
+    if(isTouching(sprite, player)){
+        console.log(sprite.powerUp);
+        if(checkPowerUp(sprite, player)){
+            for(let i=0; i<sprite.powerUp.stats.length; i++){
+                player[sprite.powerUp.stats[i][0]] += sprite.powerUp.stats[i][1];
+                if(sprite.powerUp.stats[i][0] === "lives"){
+                    playAudio(healthGain);
+                    playerLives.innerText = "Lives: " + player.lives;
+                }
+            }
+            sprite.deleted = true;
+        };
+        
+    }
+}
+function checkPowerUp(sprite, player){
+    for(let i=0; i<sprite.powerUp.conditions.length; i++){
+        if(player[sprite.powerUp.conditions[i][0]] != sprite.powerUp.conditions[i][1]){
+            return false;
+        }
+    }
+    return true;
+}
+
+//yoshi
+function createYoshi(x, y){
+    let newYoshi = createSprite(x, y, 75, 75, "yoshi");
+    newYoshi.animation.src = "images/yoshi-spritesheet.png";
+    newYoshi.spriteSheet.used = true;
+    newYoshi.spriteSheet.x = 0;
+    newYoshi.spriteSheet.y = 0;
+    newYoshi.spriteSheet.width = 512;
+    newYoshi.spriteSheet.height = 552;
+    newYoshi.spriteSheet.frameRate = 5;
+
+}
+ function yoshiLoop(sprite){
+    if(isTouching(sprite, player)){
+        player.onYoshi = true;
+        sprite.deleted = true;
+    }
+ }
 
 //spikes
 function createSpike(x, y, direction = "up", width = 50, height = 50){
@@ -438,7 +503,7 @@ function spikeLoop(spike){
                 playerLives.innerText = "Lives: " + player.lives;
             }
             else{
-                player.velocityY += gravity;
+                player.velocityY += player.gravity;
             }
             if(player.x > spike.x){
                 if(!keys.ArrowUp){
@@ -469,7 +534,7 @@ function spikeLoop(spike){
                 playerLives.innerText = "Lives: " + player.lives;
             }
             else{
-                player.velocityY -= gravity;
+                player.velocityY -= player.gravity;
             }
             if(player.x > spike.x){
                 if(!keys.ArrowUp){
@@ -503,7 +568,7 @@ function spikeLoop(spike){
             sonicLives.innerText = "Lives: " + sonic.lives;
         }
         else{
-            sonic.velocityY += gravity;
+            sonic.velocityY += sonic.gravity;
         }
         if(sonic.x > spike.x){
             if(!keys.w){
@@ -690,7 +755,7 @@ function enemyLoop(sprite){
                 }
             }
             else{
-                sprite.velocityY += gravity;
+                sprite.velocityY += sprite.gravity;
             }
         }
         if(!isNextToGround(sprite) && sprite.enemy.type !== "flyer"){
@@ -1069,27 +1134,63 @@ function gameLoop(){
         //change sprite animations when moving and/or facing left
         if(player.mode === "default"){
             player.spriteSheet.used = true;
-            player.width = 50;
-            player.height = 100;
-            player.animation = imgCache["player-sprite-sheet"];
-            if (player.facing === "left"){
-                player.spriteSheet.y = 1;
-                if(Math.abs(player.velocityX) > 1){
-                    animateSprite(player, 0, 2);
+            if(!player.onYoshi){
+                player.spriteSheet.used = true;
+                player.spriteSheet.width = 300;
+                player.spriteSheet.height = 823;
+                player.spriteSheet.frameRate = 5;
+                player.width = 50;
+                player.height = 100;
+                player.animation = imgCache["player-sprite-sheet"];
+                if (player.facing === "left"){
+                    player.spriteSheet.y = 1;
+                    if(Math.abs(player.velocityX) > 1){
+                        animateSprite(player, 0, 2);
+                    }
+                    else{
+        
+                    }
                 }
                 else{
-    
+                    player.spriteSheet.y = 0;
+                    if(Math.abs(player.velocityX) > 1){
+                        animateSprite(player, 0, 2);
+                    }
+                    else{
+        
+                    }
                 }
-            }
+            }   
             else{
-                player.spriteSheet.y = 0;
-                if(Math.abs(player.velocityX) > 1){
-                    animateSprite(player, 0, 2);
+                player.animation = imgCache["player-on-yoshi-sprite-sheet"];
+                player.spriteSheet.used = true;
+                player.spriteSheet.width = 500;
+                player.spriteSheet.height = 703;
+                player.spriteSheet.offsetX = 20;
+                player.spriteSheet.offsetY = 10;
+                player.spriteSheet.frameRate = 3;
+                player.width = 73;
+                player.height = 100;
+                if (player.facing === "left"){
+                    player.spriteSheet.y = 1;
+                    if(Math.abs(player.velocityX) > 1){
+                        animateSprite(player, 0, 0);
+                    }
+                    else{
+        
+                    }
                 }
                 else{
-    
+                    player.spriteSheet.y = 0;
+                    if(Math.abs(player.velocityX) > 1){
+                        animateSprite(player, 0, 0);
+                    }
+                    else{
+        
+                    }
                 }
             }
+           
 
         }
         else if(player.mode === "ball"){
@@ -1115,13 +1216,14 @@ function gameLoop(){
         } 
         else{
             if(player.facing === "left"){
-                player.animation = imgCache["braden-on-ship-left"];
+                player.animation = imgCache["player-on-clown-car-left"];
             }
             else{
-                player.animation = imgCache["braden-on-ship"];
+                player.animation = imgCache["player-on-clown-car"];
             }
             player.spriteSheet.used = false;
             player.width = 100;
+            player.height = 200;
 
             if(player.velocityY === 0 && !isNextToGround(player) && player.mode === "wave"){
                 player.velocityY = -10
@@ -1162,16 +1264,22 @@ function gameLoop(){
                 giveGravity(sprites[i]);
             }
             if(sprites[i].type === "enemy"){
-                enemyLoop(sprites[i])
+                enemyLoop(sprites[i]);
             }
             if(sprites[i].type === "bullet"){
-                bulletLoop(sprites[i])
+                bulletLoop(sprites[i]);
             }
             if(sprites[i].type === "spike"){
-                spikeLoop(sprites[i])
+                spikeLoop(sprites[i]);
             }
             if(sprites[i].type === "portal"){
-                portalLoop(sprites[i])
+                portalLoop(sprites[i]);
+            }
+            if(sprites[i].type === "powerUp"){
+                powerUpLoop(sprites[i]);
+            }
+            if(sprites[i].type === "yoshi"){
+                yoshiLoop(sprites[i]);
             }
             if(sprites[i].type === "ground"){
                 collide(player, sprites[i]);
@@ -1194,19 +1302,15 @@ function gameLoop(){
                     if(getRandomNumber(0,1500) === 1){
                        newEnemy.visible = true;
                         flyerCount ++;
-                        console.log("flyer created" + flyerCount)
                     }
                     
 
-                    if(flyerCount % 100 === 0){
-                        console.log("flyer created" + flyerCount)
-                    }
+                    if(flyerCount % 100 === 0){                    }
                     
                 }
                 else if(isNextToGround(newEnemy, 0, false)){
                     newEnemy.visible = true;
                     enemyCount ++;
-                    console.log("enemy created" + enemyCount)
                 }    
                 else{
                     newEnemy.deleted = true;
@@ -1221,7 +1325,6 @@ function gameLoop(){
                 newEnemy.visible = false;
                 if(isNextToGround(newEnemy, 0, false)){
                     newEnemy.visible = true;
-                    console.log("enemy created")
                 }    
                 else{
                     newEnemy.deleted = true;
@@ -1242,7 +1345,6 @@ function gameLoop(){
             }
             
         }
-        console.log(player.velocityY)
         drawSprites();
 
         //if the player falls off the map
@@ -1256,7 +1358,6 @@ function gameLoop(){
         }
     }
     //console.timeEnd("gameLoop");
-    console.log(player.velocityY)
 }
 
 
@@ -1279,11 +1380,11 @@ function giveGravity(sprite){
         if(sprite.velocityY < terminalVelocity){
             if(sprite.mode !== "ball"){
                 if(sprite.mode !== "flying"){
-                    sprite.velocityY += gravity;
+                    sprite.velocityY += sprite.gravity;
                 }
                 else{
                     if(sprite.velocityY <= 10){
-                        sprite.velocityY += gravity;
+                        sprite.velocityY += sprite.gravity;
                     }
                 }
             }
@@ -1296,7 +1397,7 @@ function giveGravity(sprite){
 
 function giveMovement(sprite, left, right, down){
     if(sprite.mode !== "ball"){
-        if(keys[left] && sprite.velocityX > -1 * maxSpeed){
+        if(keys[left] && sprite.velocityX > -1 * sprite.maxSpeed){
             sprite.velocityX -= acceleration;
             sprite.facing = "left";
         }
@@ -1304,7 +1405,7 @@ function giveMovement(sprite, left, right, down){
             sprite.velocityX += friction;
         }
     
-        if(keys[right] && sprite.velocityX < maxSpeed){
+        if(keys[right] && sprite.velocityX < sprite.maxSpeed){
             sprite.velocityX += acceleration;
             sprite.facing = "right";
         }
@@ -1330,7 +1431,7 @@ function jump(sprite){
         }
         if(sprite.jumpCount <3){
             sprite.y -= 2;
-            sprite.velocityY = -1 * jumpForce;
+            sprite.velocityY = -1 * sprite.jumpForce;
             sprite.jumpCount++;
             playAudio(jumpSound);
         }
@@ -1343,7 +1444,6 @@ function jump(sprite){
             
         }
         else if(sprite.velocityY >= 0){
-                console.log("hi")
                 sprite.velocityY -= 18;
         }
        
@@ -1351,8 +1451,8 @@ function jump(sprite){
     else if(sprite.mode === "ball"){
         //sprite.hasGravity = false;
         for(let i=0; i<grounds.length; i++){
-            if(isTouching(player, grounds[i], 5) && !keyWasPressed.ArrowUp){
-                if(Math.abs(player.y + player.height - grounds[i].y) < 4 ){
+            if(isTouching(sprite, grounds[i], 5)){
+                if(Math.abs(sprite.y + sprite.height - grounds[i].y) < 4 ){
                     if(sprite.y < grounds[i].y){
                         sprite.velocityY -= ballForce;
                         sprite.facingY = "up"
@@ -1360,12 +1460,10 @@ function jump(sprite){
                 }
                 
                 if(Math.abs(grounds[i].y + grounds[i].height - sprite.y) < 4){
-                    //console.log("HI")
                     if(sprite.y > grounds[i].y){
                         sprite.velocityY += ballForce;
                         sprite.facingY = "down"
                     }
-                    console.log(i)
                 }
             }
             // else{

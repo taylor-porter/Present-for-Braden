@@ -48,7 +48,25 @@ const levels = {
         },
         "portals" : [
     
+        ],
+        "powerUps" : [
+            [250,200, [ 
+                    //["stat", value (how much added or subtracted)], //What stat is being changed
+                    ["lives", 1], 
+                    //["jumpForce", 10],
+                ], [] //Conditions for the powerup to be active
+            ],
+            [450, 200, [
+                    ["gravity", -1.5],
+                ],[
+                    ["onYoshi", true] //[property, value]
+                ]
+            ]
+        ],
+        "yoshi" : [
+            [350, 175]
         ]
+
     },
     2: {
         "grounds" : [
@@ -90,7 +108,12 @@ const levels = {
             "src" : "images/sky3.webp"
         },
         "portals" : [
-            [650, -500, 50, 100]
+            [650, -450, 50, 50]
+        ],
+        "powerUps" : [
+
+        ],
+        "yoshi" : [
         ]
     },
     3:{
@@ -191,6 +214,11 @@ const levels = {
         "portals" : [
             [300, 150, 100, 100, "ball"],
             //[4500, -425, 50, 100, "default"]
+        ],
+        "powerUps" : [
+
+        ],
+        "yoshi" : [
         ]
 
     },
@@ -211,7 +239,12 @@ const levels = {
         },
         "portals" : {
 
-        }
+        },
+        "powerUps" : [
+
+        ],
+        "yoshi" : [
+        ]
     },
     5: {
         "grounds" : [
@@ -231,6 +264,11 @@ const levels = {
         },
         "portals" : {
 
-        }
+        },
+        "powerUps" : [
+
+        ],
+        "yoshi" : [
+        ]
     },
 }

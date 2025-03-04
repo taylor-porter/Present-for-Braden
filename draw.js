@@ -28,8 +28,8 @@ function drawSprites() {
             else{
                 ctx.drawImage(
                     sprites[i].animation,
-                    sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width), 
-                    sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
+                    sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width + sprites[i].spriteSheet.offsetX), 
+                    sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.offsetY), 
                     sprites[i].spriteSheet.width, 
                     sprites[i].spriteSheet.height,
                     sprites[i].x - camera.x * sprites[i].distanceX,
@@ -59,8 +59,8 @@ function drawSprites() {
                 else{
                     ctx2.drawImage(
                         sprites[i].animation,
-                        sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width), 
-                        sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.margin), 
+                        sprites[i].spriteSheet.x * (sprites[i].spriteSheet.width + sprites[i].spriteSheet.offsetX), 
+                        sprites[i].spriteSheet.y * (sprites[i].spriteSheet.height + sprites[i].spriteSheet.offsetY), 
                         sprites[i].spriteSheet.width, 
                         sprites[i].spriteSheet.height,
                         sprites[i].x - camera2.x * sprites[i].distanceX,
