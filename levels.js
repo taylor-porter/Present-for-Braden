@@ -50,14 +50,14 @@ const levels = {
     
         ],
         "powerUps" : [
-            [250,200, [ 
+            [1200, -500, [ 
                     //["stat", value (how much added or subtracted)], //What stat is being changed
                     ["lives", 1], 
                     //["jumpForce", 10],
-                ], [] //Conditions for the powerup to be active
+                ], [] //Conditions for the powerUp to be active
             ],
-            [450, 200, [
-                    ["gravity", -1.5],
+            [750, -350, [
+                    ["gravity", -1.3], //-1.5
                 ],[
                     ["onYoshi", true] //[property, value]
                 ]
@@ -212,7 +212,7 @@ const levels = {
             "src" : "images/sky4.2.png",
         },
         "portals" : [
-            [300, 150, 100, 100, "ball"],
+            [300, 150, 100, 100, "ball", "images/rock-mushroom.png"],
             //[4500, -425, 50, 100, "default"]
         ],
         "powerUps" : [

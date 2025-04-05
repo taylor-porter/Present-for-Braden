@@ -12,6 +12,8 @@ let cameraBorder = 150;
 let smallZoom = 0.6
 let zoom = 1; //1.3 or 1
 let largeZoom = 1;
+let splitScreenMarginFactorX = 0.5;
+let splitScreenMarginFactorY = 0.5;
 
 let multiplayer = false;
 let enemyChance = 1;

@@ -324,13 +324,13 @@ function setSprites(){
     portals = [];
     let portalData = levels[level].portals;
     for(let i=0; i<portalData.length; i++){
-        createPortal(portalData[i][0], portalData[i][1], portalData[i][2], portalData[i][3], portalData[i][4])
+        createPortal(portalData[i][0], portalData[i][1], portalData[i][2], portalData[i][3], portalData[i][4], portalData[i][5]);
     }
 
     //power-ups
     let powerUpData = levels[level].powerUps;
     for(let i=0; i<powerUpData.length; i++){
-        createPowerUp(powerUpData[i][0], powerUpData[i][1], powerUpData[i][2], powerUpData[i][3]);
+        createPowerUp(powerUpData[i][0], powerUpData[i][1], powerUpData[i][2], powerUpData[i][3], powerUpData[i][4]);
     }
 
     //yoshi
@@ -406,9 +406,9 @@ function createGround(x, y, width = 100, height = 75){
 }
 
 //Portals
-function createPortal(x, y, width, height, mode = "flying"){
+function createPortal(x, y, width, height, mode = "flying", src = "images/powerUp.png"){
     let newPortal = createSprite(x,y,width,height);
-    newPortal.animation.src = "images/powerUp.png";
+    newPortal.animation.src = src;
     newPortal.mode = mode
     newPortal.type = "portal"
     portals.push(newPortal);
@@ -430,9 +430,9 @@ function portalLoop(sprite){
 }
 
 //power-ups
-function createPowerUp(x, y, stats = [], conditions = []){
+function createPowerUp(x, y, stats = [], conditions = [], src = "images/powerUp.png"){
     let newPowerUp = createSprite(x, y, 50, 50, "powerUp");
-    newPowerUp.animation.src = "images/powerUp.png";
+    newPowerUp.animation.src = src;
     newPowerUp.powerUp = {"stats" : stats, "conditions" : conditions};    
     console.log(stats)
 }
@@ -445,6 +445,20 @@ function powerUpLoop(sprite){
                 if(sprite.powerUp.stats[i][0] === "lives"){
                     playAudio(healthGain);
                     playerLives.innerText = "Lives: " + player.lives;
+                }
+            }
+            sprite.deleted = true;
+        };
+        
+    }
+    if(isTouching(sprite, sonic)){
+        console.log(sprite.powerUp);
+        if(checkPowerUp(sprite, sonic)){
+            for(let i=0; i<sprite.powerUp.stats.length; i++){
+                sonic[sprite.powerUp.stats[i][0]] += sprite.powerUp.stats[i][1];
+                if(sprite.powerUp.stats[i][0] === "lives"){
+                    playAudio(healthGain);
+                    sonicLives.innerText = "Lives: " + sonic.lives;
                 }
             }
             sprite.deleted = true;
@@ -476,6 +490,10 @@ function createYoshi(x, y){
  function yoshiLoop(sprite){
     if(isTouching(sprite, player)){
         player.onYoshi = true;
+        sprite.deleted = true;
+    }
+    if(isTouching(sprite, sonic)){
+        sonic.onYoshi = true;
         sprite.deleted = true;
     }
  }
@@ -832,6 +850,33 @@ function bulletLoop(bullet){
         bullet.deleted = true;
     }
 }
+function playersLoop(sprite){
+    if(sprite.mode === "flying"){
+    }
+    if(sprite.mode === "flying"){
+        let spriteOnBottom = false;
+        for(let i=0; i>grounds.length; i++){
+            if(sprite.isTouching(grounds[i] && sprite.y >= grounds[i].y + grounds[i].height)){
+                spriteOnBottom = true;
+            }
+        }
+        if(keys.ArrowUp && sprite.velocityY === 0 && !spriteOnBottom){
+            sprite.velocityY -= 18
+        }
+    }
+    if(sprite.mode === "ball"){
+        {
+            if(sprite.facingY === "down"){
+                sprite.velocityY += ballForce;
+            }
+            else{
+                sprite.velocityY -= ballForce;
+            }
+        }
+    }
+}
+
+
 
 let keys = {};
 let keyWasPressed = {}
@@ -1005,7 +1050,7 @@ function goFullscreen() {
 function updateCamera(){
     //Decide whether to use split screen
     //if((isTouchingGround(player) && isTouchingGround(sonic)) || isTouching(player, sonic)){ //Only disable splitScreen if players are touching ground to prevent screen from jittering when player jumps
-        if(Math.abs(player.x - sonic.x) < camera.width - 100 && Math.abs(player.y - sonic.y) < camera.height -100){ //If the distance between players is closer than screen
+        if(Math.abs(player.x - sonic.x) < camera.width * splitScreenMarginFactorX && Math.abs(player.y - sonic.y) < camera.height * splitScreenMarginFactorY){ //If the distance between players is closer than screen
             if(splitScreen){
                 splitScreen = false;
                 startTransition();
@@ -1131,6 +1176,9 @@ function gameLoop(){
         giveMovement(player, "ArrowLeft", "ArrowRight", "ArrowDown"); 
         giveMovement(sonic, "a", "d", "s");
 
+        playersLoop(player);
+        playersLoop(sonic);
+
         //change sprite animations when moving and/or facing left
         if(player.mode === "default"){
             player.spriteSheet.used = true;
@@ -1201,15 +1249,8 @@ function gameLoop(){
             else{
                 player.animation = imgCache["braden-head-left"]
             }
-
-            if(!isTouchingGround(player) && !keys.ArrowUp){
-                if(player.facingY === "down"){
-                    player.velocityY += ballForce;
-                }
-                else{
-                    player.velocityY -= ballForce;
-                }
-            }
+        
+    
             player.width = 100;
             player.height = 100;
             player.spriteSheet.used = false;
@@ -1229,15 +1270,7 @@ function gameLoop(){
                 player.velocityY = -10
             }
             if(player.mode === "flying"){
-                let playerOnBottom = false;
-                for(let i=0; i>grounds.length; i++){
-                    if(player.isTouching(grounds[i] && player.y >= grounds[i].y + grounds[i].height)){
-                        playerOnBottom = true;
-                    }
-                }
-                if(keys.ArrowUp && player.velocityY === 0 && !playerOnBottom){
-                    player.velocityY -= 18
-                }
+               
             }
             
         }
@@ -1422,6 +1455,7 @@ function giveMovement(sprite, left, right, down){
    
 }
 function jump(sprite){
+    console.log("jump");
     if(sprite.mode === "default"){
         if(sprite === player){
             keyWasPressed.ArrowUp = true;
@@ -1449,20 +1483,23 @@ function jump(sprite){
        
     }
     else if(sprite.mode === "ball"){
-        //sprite.hasGravity = false;
+        if(sprite === player){
+            keyWasPressed.ArrowUp = true;
+        }
+        else if(sprite === sonic){
+            keyWasPressed.w = true;
+        }
         for(let i=0; i<grounds.length; i++){
             if(isTouching(sprite, grounds[i], 5)){
                 if(Math.abs(sprite.y + sprite.height - grounds[i].y) < 4 ){
                     if(sprite.y < grounds[i].y){
-                        sprite.velocityY -= ballForce;
-                        sprite.facingY = "up"
+                        sprite.facingY = "up" //See 
                     }
                 }
                 
                 if(Math.abs(grounds[i].y + grounds[i].height - sprite.y) < 4){
                     if(sprite.y > grounds[i].y){
-                        sprite.velocityY += ballForce;
-                        sprite.facingY = "down"
+                        sprite.facingY = "down" 
                     }
                 }
             }
